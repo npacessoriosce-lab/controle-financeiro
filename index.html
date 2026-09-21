@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Controle Financeiro</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--text:#17202a;--muted:#6b7280;--primary:#182b49;--green:#16834b;--red:#c0392b;--yellow:#d99b00;--border:#e6e8ec}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:var(--primary);color:#fff;padding:22px 18px 26px;border-radius:0 0 24px 24px}
+header h1{margin:0;font-size:22px}header p{margin:5px 0 0;color:#dce5f2;font-size:13px}
+.container{max-width:1050px;margin:auto;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:-8px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 2px 8px #00000008}
+.kpi small{color:var(--muted);display:block;font-size:12px}.kpi strong{display:block;font-size:21px;margin-top:7px}
+.green{color:var(--green)}.red{color:var(--red)}.yellow{color:var(--yellow)}
+.tabs{display:flex;gap:8px;overflow:auto;margin:18px 0 12px}.tabs button{border:0;background:#fff;border:1px solid var(--border);padding:11px 15px;border-radius:12px;white-space:nowrap;cursor:pointer}.tabs button.active{background:var(--primary);color:#fff}
+.section{display:none}.section.active{display:block}
+.row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.formgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}input,select{width:100%;padding:11px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:14px}
+button.primary{background:var(--primary);color:#fff;border:0;border-radius:10px;padding:11px 16px;cursor:pointer}.actions button{border:0;background:#eef1f5;border-radius:8px;padding:7px 9px;margin-left:4px;cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}th,td{text-align:left;padding:11px 7px;border-bottom:1px solid var(--border)}th{color:var(--muted);font-weight:600}
+.badge{padding:4px 8px;border-radius:20px;font-size:11px;background:#eef1f5}.badge.pago{background:#e4f5ec;color:var(--green)}.badge.pendente{background:#fff3d4;color:#8a6500}
+.progress{height:10px;background:#edf0f3;border-radius:10px;overflow:hidden}.progress div{height:100%;background:var(--green);width:0}
+.empty{padding:24px;text-align:center;color:var(--muted)}.totalbox{display:flex;justify-content:space-between;align-items:center;padding:14px;background:#f7f8fa;border-radius:12px;margin-top:12px}
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.formgrid{grid-template-columns:1fr 1fr}.row{grid-template-columns:1fr}}
+@media(max-width:520px){header{padding:18px 15px 23px}.container{padding:12px}.grid{gap:8px}.card{padding:13px}.kpi strong{font-size:18px}.formgrid{grid-template-columns:1fr}.tabs button{padding:10px 12px}table{font-size:12px}th:nth-child(3),td:nth-child(3){display:none}}
+</style>
+</head>
+<body>
+<header><div class="container"><h1>Meu Controle Financeiro</h1><p>Receba • separe as contas • guarde • saiba quanto pode gastar</p></div></header>
+<div class="container">
+<div class="grid">
+<div class="card kpi"><small>Recebido na semana</small><strong id="kpiRecebido">R$ 0,00</strong></div>
+<div class="card kpi"><small>Contas + parcelas</small><strong id="kpiContas">R$ 0,00</strong></div>
+<div class="card kpi"><small>Guardado na semana</small><strong id="kpiGuardado">R$ 0,00</strong></div>
+<div class="card kpi"><small>Posso gastar</small><strong id="kpiDisponivel" class="green">R$ 0,00</strong></div>
+</div>
+
+<div class="tabs">
+<button class="active" onclick="showTab('inicio',this)">🏠 Início</button>
+<button onclick="showTab('recebimentos',this)">💰 Recebimentos</button>
+<button onclick="showTab('compromissos',this)">📌 Contas e Parcelados</button>
+<button onclick="showTab('gastos',this)">💸 Gastos</button>
+<button onclick="showTab('cofrinhos',this)">🏦 Cofrinhos</button>
+<button onclick="showTab('guardar',this)">🏦 Guardar</button>
+<button onclick="showTab('resumo',this)">📊 Resumo</button>
+</div>
+
+<section id="inicio" class="section active">
+<div class="row">
+<div class="card">
+<h3>Minha semana</h3>
+<p style="color:var(--muted);font-size:13px">Período atual: <b id="periodo"></b></p>
+<div class="totalbox"><span>Recebimentos</span><b id="homeRecebido">R$ 0,00</b></div>
+<div class="totalbox"><span>Contas reservadas</span><b id="homeContas">R$ 0,00</b></div>
+<div class="totalbox"><span>Parcelas da semana</span><b id="homeParcelas">R$ 0,00</b></div>
+<div class="totalbox"><span>Para guardar</span><b id="homeGuardado">R$ 0,00</b></div>
+<div class="totalbox"><span>Nos cofrinhos</span><b id="homeCofrinhos">R$ 0,00</b></div>
+<div class="totalbox"><span>Já gastei</span><b id="homeGastos">R$ 0,00</b></div>
+<div class="totalbox" style="margin-top:18px;background:#edf7f1"><span><b>Posso gastar</b></span><b class="green" id="homeDisponivel">R$ 0,00</b></div>
+</div>
+<div class="card">
+<h3>Meta de economia</h3>
+<p style="color:var(--muted);font-size:13px">Defina quanto quer guardar por semana.</p>
+<input id="metaInput" type="number" step="0.01" placeholder="Ex.: 500">
+<button class="primary" style="margin-top:10px" onclick="saveMeta()">Salvar meta</button>
+<div style="margin-top:18px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>Meta semanal</span><b id="metaValor">R$ 0,00</b></div><div class="progress" style="margin-top:8px"><div id="metaBar"></div></div><p id="metaTexto" style="font-size:12px;color:var(--muted)"></p></div>
+</div>
+</div>
+<div class="card">
+<h3>Quanto está realmente livre?</h3>
+<p style="color:var(--muted);font-size:13px">Considera os compromissos que ainda estão por vencer neste mês.</p>
+<div class="totalbox"><span>Recebido no mês</span><b id="mesLivreRecebido">R$ 0,00</b></div>
+<div class="totalbox"><span>Compromissos futuros</span><b id="mesLivreComp">R$ 0,00</b></div>
+<div class="totalbox"><span>Gastos do mês</span><b id="mesLivreGastos">R$ 0,00</b></div>
+<div class="totalbox" style="margin-top:18px;background:#edf7f1"><span><b>Valor realmente livre</b></span><b class="green" id="mesLivre">R$ 0,00</b></div>
+</div>
+</section>
+
+<section id="recebimentos" class="section">
+<div class="card"><h3>Novo recebimento</h3><div class="formgrid">
+<div><label>Valor</label><input id="rValor" type="number" step="0.01"></div>
+<div><label>Data</label><input id="rData" type="date"></div>
+<div><label>Descrição</label><input id="rDesc" placeholder="Ex.: pagamento semanal"></div>
+<div style="display:flex;align-items:end"><button class="primary" onclick="addRecebimento()">Adicionar</button></div>
+</div></div>
+<div class="card" style="margin-top:12px"><h3>Recebimentos</h3><div id="listaRecebimentos"></div></div>
+</section>
+
+
+<section id="compromissos" class="section">
+<div class="card">
+<h3>Adicionar compromisso</h3>
+<div class="formgrid">
+<div><label>Tipo</label><select id="tipoComp" onchange="toggleCompForm()"><option value="conta">Conta</option><option value="parcelado">Compra parcelada</option></select></div>
+<div><label>Descrição</label><input id="compDesc" placeholder="Ex.: Internet ou TV"></div>
+<div><label>Valor</label><input id="compValor" type="number" step="0.01"></div>
+<div><label>Vencimento</label><input id="compData" type="date"></div>
+</div>
+<div id="parcelExtra" style="display:none;margin-top:10px">
+<div class="formgrid">
+<div><label>Quantidade de parcelas</label><input id="compQtd" type="number" min="2" step="1" placeholder="6"></div>
+<div style="display:flex;align-items:end"><span style="font-size:12px;color:var(--muted)">As parcelas serão geradas mês a mês.</span></div>
+</div>
+</div>
+<button class="primary" style="margin-top:10px" onclick="addCompromisso()">Adicionar</button>
+</div>
+
+<div class="card" style="margin-top:12px">
+<h3>Próximos pagamentos</h3>
+<div id="proximosCompromissos"></div>
+</div>
+
+<div class="card" style="margin-top:12px">
+<h3>Contas e parcelados cadastrados</h3>
+<div id="listaCompromissos"></div>
+</div>
+</section>
+<section id="gastos" class="section">
+<div class="card"><h3>Novo gasto</h3><div class="formgrid">
+<div><label>Descrição</label><input id="gDesc" placeholder="Ex.: combustível"></div>
+<div><label>Valor</label><input id="gValor" type="number" step="0.01"></div>
+<div><label>Data</label><input id="gData" type="date"></div>
+<div><label>Categoria</label><select id="gCat"><option>Alimentação</option><option>Combustível</option><option>Casa</option><option>Carro</option><option>Lazer</option><option>Compras</option><option>Outros</option></select></div>
+</div><button class="primary" style="margin-top:10px" onclick="addGasto()">Adicionar gasto</button></div>
+<div class="card" style="margin-top:12px"><h3>Gastos</h3><div id="listaGastos"></div></div>
+</section>
+
+
+<section id="parcelados" class="section">
+<div class="card"><h3>Nova compra parcelada</h3>
+<div class="formgrid">
+<div><label>Descrição</label><input id="pDesc" placeholder="Ex.: TV"></div>
+<div><label>Valor total</label><input id="pTotal" type="number" step="0.01" placeholder="1200"></div>
+<div><label>Quantidade de parcelas</label><input id="pQtd" type="number" min="2" step="1" placeholder="6"></div>
+<div><label>Primeiro vencimento</label><input id="pData" type="date"></div>
+</div>
+<button class="primary" style="margin-top:10px" onclick="addParcelado()">Adicionar compra</button>
+<p style="font-size:12px;color:var(--muted);margin-bottom:0">O sistema calcula a parcela e cria os vencimentos automaticamente mês a mês.</p>
+</div>
+<div class="card" style="margin-top:12px"><h3>Compras parceladas</h3><div id="listaParcelados"></div></div>
+<div class="card" style="margin-top:12px"><h3>Próximos compromissos</h3><div id="proximosParcelados"></div></div>
+</section>
+<section id="guardar" class="section">
+<div class="card"><h3>Dinheiro guardado</h3><p style="color:var(--muted);font-size:13px">Registre o valor que realmente separou.</p><div class="formgrid">
+<div><label>Valor</label><input id="sValor" type="number" step="0.01"></div>
+<div><label>Data</label><input id="sData" type="date"></div>
+<div><label>Descrição</label><input id="sDesc" placeholder="Ex.: reserva semanal"></div>
+<div style="display:flex;align-items:end"><button class="primary" onclick="addGuardado()">Adicionar</button></div>
+</div></div>
+<div class="card" style="margin-top:12px"><h3>Histórico</h3><div id="listaGuardado"></div></div>
+</section>
+
+
+<section id="cofrinhos" class="section">
+<div class="card">
+<h3>Novo cofrinho / meta</h3>
+<div class="formgrid">
+<div><label>Nome da meta</label><input id="mNome" placeholder="Ex.: Comprar meu carro"></div>
+<div><label>Valor da meta</label><input id="mMeta" type="number" step="0.01" placeholder="30000"></div>
+<div style="display:flex;align-items:end"><button class="primary" onclick="addMeta()">Criar cofrinho</button></div>
+</div>
+</div>
+<div class="card" style="margin-top:12px">
+<h3>Meus cofrinhos</h3>
+<div id="listaMetas"></div>
+</div>
+<div class="card" style="margin-top:12px"><h3>Histórico de depósitos</h3><div id="listaDepositos"></div></div>
+<div class="card" style="margin-top:12px">
+<h3>Adicionar dinheiro a um cofrinho</h3>
+<div class="formgrid">
+<div><label>Cofrinho</label><select id="depMeta"></select></div>
+<div><label>Valor</label><input id="depValor" type="number" step="0.01"></div>
+<div><label>Data</label><input id="depData" type="date"></div>
+<div><label>Descrição</label><input id="depDesc" placeholder="Ex.: reserva da semana"></div>
+</div>
+<button class="primary" style="margin-top:10px" onclick="addDeposito()">Guardar dinheiro</button>
+</div>
+</section>
+<section id="resumo" class="section">
+<div class="card"><h3>Resumo do mês</h3><div class="grid" style="margin:0">
+<div class="card kpi"><small>Entradas</small><strong id="mesEntrada">R$ 0,00</strong></div>
+<div class="card kpi"><small>Compromissos</small><strong id="mesContas">R$ 0,00</strong></div>
+<div class="card kpi"><small>Gastos</small><strong id="mesGastos">R$ 0,00</strong></div>
+<div class="card kpi"><small>Parcelas</small><strong id="mesParcelas">R$ 0,00</strong></div>
+<div class="card kpi"><small>Guardado</small><strong id="mesGuardado">R$ 0,00</strong></div>
+</div><div class="totalbox"><span>Saldo do mês após tudo</span><b id="mesSaldo">R$ 0,00</b></div></div>
+</section>
+</div>
+<script>
+const KEY='meu_controle_financeiro_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'{"recebimentos":[],"contas":[],"gastos":[],"guardado":[],"parcelados":[],"meta":0}');
+if(!db.parcelados) db.parcelados=[];
+if(!db.metas) db.metas=[];
+if(!db.depositos) db.depositos=[];
+const brl=v=>(Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const today=()=>new Date().toISOString().slice(0,10);
+['rData','gData','sData','compData','depData'].forEach(id=>document.getElementById(id).value=today());
+function save(){localStorage.setItem(KEY,JSON.stringify(db));render();}
+function money(id){return parseFloat(document.getElementById(id).value)||0}
+function dateBR(d){return new Date(d+'T12:00:00').toLocaleDateString('pt-BR')}
+function weekRange(){
+ const d=new Date(); const day=(d.getDay()+6)%7; const start=new Date(d);start.setDate(d.getDate()-day);
+ const end=new Date(start);end.setDate(start.getDate()+6);
+ return {start:start.toISOString().slice(0,10),end:end.toISOString().slice(0,10)}
+}
+function inWeek(d){let w=weekRange();return d>=w.start&&d<=w.end}
+function inMonth(d){return d.slice(0,7)===today().slice(0,7)}
+function sum(arr,key='valor',filter=()=>true){return arr.filter(filter).reduce((a,x)=>a+Number(x[key]||0),0)}
+function addRecebimento(){let v=money('rValor');if(!v)return alert('Informe o valor.');db.recebimentos.push({id:Date.now(),valor:v,data:document.getElementById('rData').value,desc:document.getElementById('rDesc').value||'Recebimento'});clear(['rValor','rDesc']);save()}
+function addConta(){let v=money('cValor'),n=document.getElementById('cNome').value;if(!n||!v)return alert('Informe nome e valor.');db.contas.push({id:Date.now(),nome:n,valor:v,data:document.getElementById('cData').value,pago:false});clear(['cNome','cValor']);save()}
+
+function addMeta(){
+ const nome=document.getElementById('mNome').value.trim();
+ const meta=money('mMeta');
+ if(!nome||!meta)return alert('Informe o nome e o valor da meta.');
+ db.metas.push({id:Date.now(),nome,meta});
+ clear(['mNome','mMeta']); save();
+}
+function addDeposito(){
+ const metaId=Number(document.getElementById('depMeta').value);
+ const valor=money('depValor');
+ const data=document.getElementById('depData').value;
+ const desc=document.getElementById('depDesc').value.trim()||'Depósito no cofrinho';
+ if(!metaId||!valor||!data)return alert('Escolha o cofrinho e informe o valor.');
+ db.depositos.push({id:Date.now(),metaId,valor,data,desc});
+ clear(['depValor','depDesc']); save();
+}
+function delMeta(id){
+ if(confirm('Excluir este cofrinho? Os depósitos dele também serão removidos.')){
+   db.metas=db.metas.filter(x=>x.id!==id);
+   db.depositos=db.depositos.filter(x=>x.metaId!==id);
+   save();
+ }
+}
+function saldoMeta(id){return db.depositos.filter(x=>x.metaId===id).reduce((a,x)=>a+Number(x.valor||0),0)}
+
+function addGasto(){let v=money('gValor'),d=document.getElementById('gDesc').value;if(!d||!v)return alert('Informe descrição e valor.');db.gastos.push({id:Date.now(),desc:d,valor:v,data:document.getElementById('gData').value,cat:document.getElementById('gCat').value});clear(['gDesc','gValor']);save()}
+function addGuardado(){let v=money('sValor');if(!v)return alert('Informe o valor.');db.guardado.push({id:Date.now(),valor:v,data:document.getElementById('sData').value,desc:document.getElementById('sDesc').value||'Reserva semanal'});clear(['sValor','sDesc']);save()}
+
+function parcelaData(base, index){
+ const d=new Date(base+'T12:00:00');
+ d.setMonth(d.getMonth()+index);
+ return d.toISOString().slice(0,10);
+}
+function parcelasDaCompra(x){
+ return Array.from({length:x.qtd},(_,i)=>({numero:i+1,total:x.qtd,valor:x.valorParcela,data:parcelaData(x.data,i)}));
+}
+function statusParcela(x){
+ const chave='parcela_paga_'+x.id;
+ const arr=JSON.parse(localStorage.getItem(chave)||'[]');
+ return arr;
+}
+function toggleParcela(id,num){
+ const chave='parcela_paga_'+id;
+ let arr=JSON.parse(localStorage.getItem(chave)||'[]');
+ arr=arr.includes(num)?arr.filter(n=>n!==num):arr.concat(num);
+ localStorage.setItem(chave,JSON.stringify(arr));
+ render();
+}
+function deleteParcelado(id){
+ if(confirm('Excluir esta compra parcelada e todas as suas parcelas?')){
+   db.parcelados=db.parcelados.filter(x=>x.id!==id);
+   localStorage.removeItem('parcela_paga_'+id);
+   save();
+ }
+}
+
+function clear(ids){ids.forEach(id=>document.getElementById(id).value='')}
+function del(type,id){if(confirm('Excluir este lançamento?')){db[type]=db[type].filter(x=>x.id!==id);save()}}
+function toggleConta(id){let x=db.contas.find(x=>x.id===id);x.pago=!x.pago;save()}
+function saveMeta(){db.meta=money('metaInput');save();alert('Meta salva!')}
+function showTab(id,btn){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));btn.classList.add('active')}
+function table(headers,rows){if(!rows.length)return '<div class="empty">Nenhum lançamento ainda.</div>';return '<div style="overflow:auto"><table><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>'}
+function render(){
+ const w=weekRange();
+ const rec=sum(db.recebimentos,'valor',x=>inWeek(x.data));
+ const contas=sum(db.contas,'valor',x=>inWeek(x.data));
+ const gastos=sum(db.gastos,'valor',x=>inWeek(x.data));
+ const guard=sum(db.guardado,'valor',x=>inWeek(x.data));
+ const cofrinhoSemana=sum(db.depositos,'valor',x=>inWeek(x.data));
+ const parcelasSemana=db.parcelados.flatMap(x=>parcelasDaCompra(x).map(p=>({...p,idCompra:x.id}))).filter(p=>inWeek(p.data));
+ const parcelasValor=sum(parcelasSemana,'valor');
+ const compromissosSemana=contas+parcelasValor;
+ const disp=rec-contas-parcelasValor-guard-gastos-cofrinhoSemana;
+ document.getElementById('periodo').textContent=dateBR(w.start)+' a '+dateBR(w.end);
+ const metaSelect=document.getElementById('depMeta');
+ metaSelect.innerHTML=db.metas.length?db.metas.map(m=>`<option value="${m.id}">${m.nome}</option>`).join(''):'<option value="">Crie um cofrinho primeiro</option>';
+ document.getElementById('listaMetas').innerHTML=db.metas.length?db.metas.map(m=>{
+   const guardado=saldoMeta(m.id), pct=m.meta?Math.min(100,guardado/m.meta*100):0, falta=Math.max(0,m.meta-guardado);
+   return `<div class="card" style="margin-bottom:10px;border:1px solid var(--border)">
+     <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+       <div><h3 style="margin:0 0 5px">${m.nome}</h3><div style="font-size:12px;color:var(--muted)">Meta: ${brl(m.meta)}</div></div>
+       <button class="actions" onclick="delMeta(${m.id})">Excluir</button>
+     </div>
+     <div style="margin-top:12px"><div style="display:flex;justify-content:space-between;font-size:13px"><b>${brl(guardado)}</b><span>${pct.toFixed(0)}%</span></div>
+     <div class="progress" style="margin-top:7px"><div style="width:${pct}%"></div></div>
+     <div style="font-size:12px;color:var(--muted);margin-top:7px">${falta?`Faltam ${brl(falta)}`:'🎉 Meta atingida!'}</div></div>
+     <div style="margin-top:10px;font-size:12px;color:var(--muted)">Total de depósitos: ${db.depositos.filter(x=>x.metaId===m.id).length}</div>
+   </div>`;
+ }).join(''):'<div class="empty">Você ainda não criou nenhum cofrinho.</div>';
+ document.getElementById('listaDepositos').innerHTML=db.depositos.length?table(['Data','Cofrinho','Descrição','Valor',''],db.depositos.slice().reverse().map(d=>{const m=db.metas.find(x=>x.id===d.metaId);return `<tr><td>${dateBR(d.data)}</td><td>${m?m.nome:'Cofrinho removido'}</td><td>${d.desc}</td><td>${brl(d.valor)}</td><td class="actions"><button onclick="del('depositos',${d.id})">Excluir</button></td></tr>`})):'<div class="empty">Nenhum depósito registrado.</div>';
+
+
+ ['kpiRecebido','homeRecebido'].forEach(id=>document.getElementById(id).textContent=brl(rec));
+ ['kpiContas','homeContas'].forEach(id=>document.getElementById(id).textContent=brl(contas));
+ ['kpiGuardado','homeGuardado'].forEach(id=>document.getElementById(id).textContent=brl(guard));
+ document.getElementById('homeParcelas').textContent=brl(parcelasValor);
+ document.getElementById('homeCofrinhos').textContent=brl(cofrinhoSemana);
+ ['kpiDisponivel','homeDisponivel'].forEach(id=>{let e=document.getElementById(id);e.textContent=brl(disp);e.className=disp>=0?'green':'red'});
+ document.getElementById('homeGastos').textContent=brl(gastos);
+ document.getElementById('metaValor').textContent=brl(db.meta);
+ let pct=db.meta?Math.min(100,guard/db.meta*100):0;document.getElementById('metaBar').style.width=pct+'%';
+ document.getElementById('metaTexto').textContent=db.meta?(guard>=db.meta?'Meta semanal atingida!':`Faltam ${brl(db.meta-guard)} para a meta.`):'Defina sua meta acima.';
+ document.getElementById('metaInput').value=db.meta||'';
+ document.getElementById('listaRecebimentos').innerHTML=table(['Data','Descrição','Valor',''],db.recebimentos.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('recebimentos',${x.id})">Excluir</button></td></tr>`));
+ document.getElementById('listaCompromissos').innerHTML=(function(){
+   const rows=[];
+   db.contas.slice().sort((a,b)=>a.data.localeCompare(b.data)).forEach(x=>{
+     rows.push(`<tr><td>📌 Conta</td><td>${dateBR(x.data)}</td><td>${x.nome}</td><td>${brl(x.valor)}</td><td><button class="badge ${x.pago?'pago':'pendente'}" onclick="toggleConta(${x.id})">${x.pago?'PAGA':'PENDENTE'}</button></td><td class="actions"><button onclick="del('contas',${x.id})">Excluir</button></td></tr>`);
+   });
+   db.parcelados.slice().forEach(x=>{
+     const pagos=statusParcela(x.id);
+     rows.push(`<tr><td>🧾 Parcelado</td><td>${dateBR(x.data)}</td><td>${x.desc}<br><span style="font-size:11px;color:var(--muted)">${x.qtd}x de ${brl(x.valorParcela)}</span></td><td>${brl(x.total)}</td><td>-</td><td class="actions"><button onclick="deleteParcelado(${x.id})">Excluir</button></td></tr>`);
+     parcelasDaCompra(x).forEach(pp=>{
+       rows.push(`<tr><td style="padding-left:28px;font-size:11px">↳ ${pp.numero}/${pp.total}</td><td>${dateBR(pp.data)}</td><td>Parcela</td><td>${brl(pp.valor)}</td><td><button class="badge ${pagos.includes(pp.numero)?'pago':'pendente'}" onclick="toggleParcela(${x.id},${pp.numero})">${pagos.includes(pp.numero)?'PAGA':'PENDENTE'}</button></td><td></td></tr>`);
+     });
+   });
+   return rows.length?`<div style="overflow:auto"><table><thead><tr><th>Tipo</th><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`:'<div class="empty">Nenhuma conta ou compra parcelada cadastrada.</div>';
+ })();
+ document.getElementById('listaGastos').innerHTML=table(['Data','Descrição','Categoria','Valor',''],db.gastos.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${x.cat}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('gastos',${x.id})">Excluir</button></td></tr>`));
+ document.getElementById('listaGuardado').innerHTML=table(['Data','Descrição','Valor',''],db.guardado.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('guardado',${x.id})">Excluir</button></td></tr>`));
+ const parcelRows=[];
+ db.parcelados.slice().reverse().forEach(x=>{
+   const pagos=statusParcela(x.id);
+   const parcelas=parcelasDaCompra(x);
+   parcelRows.push(`<tr><td><b>${x.desc}</b><br><span style="font-size:11px;color:var(--muted)">${brl(x.total)} em ${x.qtd}x de ${brl(x.valorParcela)}</span></td><td>${dateBR(x.data)}</td><td>${x.qtd}x</td><td class="actions"><button onclick="delParcelado(${x.id})">Excluir</button></td></tr>`);
+   const detalhes=parcelas.map(pp=>`<tr><td>${pp.numero}/${pp.total}</td><td>${dateBR(pp.data)}</td><td>${brl(pp.valor)}</td><td><button class="badge ${pagos.includes(pp.numero)?'pago':'pendente'}" onclick="toggleParcela(${x.id},${pp.numero})">${pagos.includes(pp.numero)?'PAGA':'PENDENTE'}</button></td></tr>`).join('');
+   parcelRows.push(`<tr><td colspan="4" style="padding:0 0 10px"><div style="background:#fafbfc;border-radius:10px;padding:8px;overflow:auto"><table><thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead><tbody>${detalhes}</tbody></table></div></td></tr>`);
+ });
+ document.getElementById('listaParcelados').innerHTML=parcelRows.length?`<div style="overflow:auto"><table><thead><tr><th>Compra</th><th>1º vencimento</th><th>Parcelas</th><th></th></tr></thead><tbody>${parcelRows.join('')}</tbody></table></div>`:'<div class="empty">Nenhuma compra parcelada.</div>';
+ const proximos=[];
+ db.contas.forEach(x=>{if(!x.pago&&x.data>=today())proximos.push({data:x.data,desc:x.nome,valor:x.valor,tipo:'Conta',extra:''})});
+ db.parcelados.forEach(x=>{
+   const pagos=statusParcela(x.id);
+   parcelasDaCompra(x).forEach(pp=>{if(pp.data>=today()&&!pagos.includes(pp.numero))proximos.push({data:pp.data,desc:x.desc,valor:pp.valor,tipo:'Parcela',extra:`${pp.numero}/${pp.total}`})});
+ });
+ proximos.sort((a,b)=>a.data.localeCompare(b.data));
+ document.getElementById('proximosCompromissos').innerHTML=proximos.length?table(['Vencimento','Tipo','Descrição','Valor'],proximos.slice(0,15).map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.tipo} ${x.extra}</td><td>${x.desc}</td><td>${brl(x.valor)}</td></tr>`)):'<div class="empty">Nenhum pagamento futuro.</div>';
+
+ const me=sum(db.recebimentos,'valor',x=>inMonth(x.data)),mc=sum(db.contas,'valor',x=>inMonth(x.data)),mg=sum(db.gastos,'valor',x=>inMonth(x.data)),ms=sum(db.guardado,'valor',x=>inMonth(x.data));
+ const md=sum(db.depositos,'valor',x=>inMonth(x.data));
+ const mp=db.parcelados.flatMap(x=>parcelasDaCompra(x)).filter(x=>inMonth(x.data)).reduce((a,x)=>a+x.valor,0);
+ const compromissosMes=mc+mp;
+ document.getElementById('mesEntrada').textContent=brl(me);document.getElementById('mesContas').textContent=brl(compromissosMes);document.getElementById('mesGastos').textContent=brl(mg);document.getElementById('mesParcelas').textContent=brl(mp);document.getElementById('mesGuardado').textContent=brl(ms+md);document.getElementById('mesSaldo').textContent=brl(me-mc-mg-ms-md-mp);
+ const futurosContas=db.contas.filter(x=>!x.pago&&inMonth(x.data)).reduce((a,x)=>a+x.valor,0); const pagosParc=db.parcelados.flatMap(x=>parcelasDaCompra(x).map(pp=>({...pp,id:x.id}))).filter(pp=>inMonth(pp.data)&&!statusParcela(pp.id).includes(pp.numero)).reduce((a,x)=>a+x.valor,0); const livreMes=me-futurosContas-pagosParc-mg-ms-md; document.getElementById('mesLivreRecebido').textContent=brl(me);document.getElementById('mesLivreComp').textContent=brl(futurosContas+pagosParc);document.getElementById('mesLivreGastos').textContent=brl(mg);document.getElementById('mesLivre').textContent=brl(livreMes);
+}
+render();
+</script>
+</body>
+</html>
