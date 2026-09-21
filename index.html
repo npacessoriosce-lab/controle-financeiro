@@ -5,35 +5,59 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Meu Controle Financeiro</title>
 <style>
-:root{--bg:#f5f6f8;--card:#fff;--text:#17202a;--muted:#6b7280;--primary:#182b49;--green:#16834b;--red:#c0392b;--yellow:#d99b00;--border:#e6e8ec}
-*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
-header{background:var(--primary);color:#fff;padding:22px 18px 26px;border-radius:0 0 24px 24px}
-header h1{margin:0;font-size:22px}header p{margin:5px 0 0;color:#dce5f2;font-size:13px}
-.container{max-width:1050px;margin:auto;padding:16px}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:-8px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 2px 8px #00000008}
-.kpi small{color:var(--muted);display:block;font-size:12px}.kpi strong{display:block;font-size:21px;margin-top:7px}
-.green{color:var(--green)}.red{color:var(--red)}.yellow{color:var(--yellow)}
-.tabs{display:flex;gap:8px;overflow:auto;margin:18px 0 12px}.tabs button{border:0;background:#fff;border:1px solid var(--border);padding:11px 15px;border-radius:12px;white-space:nowrap;cursor:pointer}.tabs button.active{background:var(--primary);color:#fff}
+:root{
+ --bg:#f6f7f9;--surface:#fff;--surface2:#f0f2f5;--text:#15181d;--muted:#737983;
+ --line:#e6e8ec;--accent:#17202b;--green:#16764a;--red:#b83b35;--gold:#9a6a00;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif}
+body{min-height:100vh}
+header{background:var(--accent);color:#fff;padding:28px 18px 30px;border-radius:0 0 28px 28px}
+header .container{padding:0}
+header h1{font-size:22px;letter-spacing:-.4px;margin:0;font-weight:700}
+header p{margin:6px 0 0;font-size:13px;color:#bfc7d1}
+.container{width:min(100%,760px);margin:auto;padding:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:-5px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 3px 14px rgba(15,23,42,.035)}
+.kpi{min-height:91px}
+.kpi small{display:block;color:var(--muted);font-size:11px}
+.kpi strong{display:block;font-size:19px;margin-top:8px;letter-spacing:-.3px}
+.green{color:var(--green)}.red{color:var(--red)}.yellow{color:var(--gold)}
+.tabs{display:flex;gap:7px;overflow-x:auto;padding:3px 0 5px;margin:14px 0 10px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{border:1px solid var(--line);background:var(--surface);color:var(--text);padding:10px 13px;border-radius:12px;white-space:nowrap;font-size:12px;font-weight:600}
+.tabs button.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .section{display:none}.section.active{display:block}
-.row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.formgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}input,select{width:100%;padding:11px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:14px}
-button.primary{background:var(--primary);color:#fff;border:0;border-radius:10px;padding:11px 16px;cursor:pointer}.actions button{border:0;background:#eef1f5;border-radius:8px;padding:7px 9px;margin-left:4px;cursor:pointer}
-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}th,td{text-align:left;padding:11px 7px;border-bottom:1px solid var(--border)}th{color:var(--muted);font-weight:600}
-.badge{padding:4px 8px;border-radius:20px;font-size:11px;background:#eef1f5}.badge.pago{background:#e4f5ec;color:var(--green)}.badge.pendente{background:#fff3d4;color:#8a6500}
-.progress{height:10px;background:#edf0f3;border-radius:10px;overflow:hidden}.progress div{height:100%;background:var(--green);width:0}
-.empty{padding:24px;text-align:center;color:var(--muted)}.totalbox{display:flex;justify-content:space-between;align-items:center;padding:14px;background:#f7f8fa;border-radius:12px;margin-top:12px}
-@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.formgrid{grid-template-columns:1fr 1fr}.row{grid-template-columns:1fr}}
-@media(max-width:520px){header{padding:18px 15px 23px}.container{padding:12px}.grid{gap:8px}.card{padding:13px}.kpi strong{font-size:18px}.formgrid{grid-template-columns:1fr}.tabs button{padding:10px 12px}table{font-size:12px}th:nth-child(3),td:nth-child(3){display:none}}
-</style>
+.row{display:grid;grid-template-columns:1fr;gap:12px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+h3{font-size:16px;margin:0 0 12px;letter-spacing:-.2px}
+label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:600}
+input,select{width:100%;padding:12px 12px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--text);font-size:14px;outline:none}
+input:focus,select:focus{border-color:#aeb5bf;box-shadow:0 0 0 3px rgba(23,32,43,.06)}
+button{font-family:inherit}
+button.primary{background:var(--accent);color:#fff;border:0;border-radius:11px;padding:12px 16px;font-weight:600;font-size:13px;cursor:pointer}
+.actions button,.actions{border:0;background:var(--surface2);color:var(--text);border-radius:8px;padding:7px 9px;font-size:11px;cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px}
+th,td{text-align:left;padding:10px 7px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.badge{padding:5px 8px;border:0;border-radius:20px;font-size:10px;font-weight:700}
+.badge.pago{background:#e6f4ed;color:var(--green)}.badge.pendente{background:#fff4d7;color:#896400}
+.progress{height:8px;background:#e9ecf0;border-radius:10px;overflow:hidden}
+.progress div{height:100%;background:var(--green);border-radius:10px}
+.empty{padding:24px 10px;text-align:center;color:var(--muted);font-size:12px}
+.totalbox{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:13px}
+.totalbox:last-child{border-bottom:0}
+@media(min-width:620px){.row{grid-template-columns:1fr 1fr}.grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:430px){.container{padding:11px}.card{padding:14px;border-radius:16px}.formgrid{grid-template-columns:1fr}.kpi strong{font-size:18px}header{padding:23px 14px 27px}}
+</style>>
 </head>
 <body>
-<header><div class="container"><h1>Meu Controle Financeiro</h1><p>Receba • separe as contas • guarde • saiba quanto pode gastar</p></div></header>
+<header><div class="container"><h1>Meu Controle Financeiro</h1><p>Seu dinheiro, organizado de forma simples.</p></div></header>
 <div class="container">
 <div class="grid">
 <div class="card kpi"><small>Recebido na semana</small><strong id="kpiRecebido">R$ 0,00</strong></div>
 <div class="card kpi"><small>Contas + parcelas</small><strong id="kpiContas">R$ 0,00</strong></div>
-<div class="card kpi"><small>Guardado na semana</small><strong id="kpiGuardado">R$ 0,00</strong></div>
+<div class="card kpi"><small>Nos cofrinhos</small><strong id="kpiGuardado">R$ 0,00</strong></div>
 <div class="card kpi"><small>Posso gastar</small><strong id="kpiDisponivel" class="green">R$ 0,00</strong></div>
 </div>
 
@@ -43,19 +67,23 @@ table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}th,td{t
 <button onclick="showTab('compromissos',this)">📌 Contas e Parcelados</button>
 <button onclick="showTab('gastos',this)">💸 Gastos</button>
 <button onclick="showTab('cofrinhos',this)">🏦 Cofrinhos</button>
-<button onclick="showTab('guardar',this)">🏦 Guardar</button>
 <button onclick="showTab('resumo',this)">📊 Resumo</button>
 </div>
 
 <section id="inicio" class="section active">
 <div class="row">
 <div class="card">
-<h3>Minha semana</h3>
-<p style="color:var(--muted);font-size:13px">Período atual: <b id="periodo"></b></p>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<h3 style="margin:0">Minha semana</h3><span id="periodo" style="font-size:10px;color:var(--muted)"></span>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+<button class="primary" onclick="showTabById('recebimentos')">＋ Recebi</button>
+<button class="primary" onclick="showTabById('gastos')">＋ Gasto</button>
+</div>
+
 <div class="totalbox"><span>Recebimentos</span><b id="homeRecebido">R$ 0,00</b></div>
 <div class="totalbox"><span>Contas reservadas</span><b id="homeContas">R$ 0,00</b></div>
 <div class="totalbox"><span>Parcelas da semana</span><b id="homeParcelas">R$ 0,00</b></div>
-<div class="totalbox"><span>Para guardar</span><b id="homeGuardado">R$ 0,00</b></div>
 <div class="totalbox"><span>Nos cofrinhos</span><b id="homeCofrinhos">R$ 0,00</b></div>
 <div class="totalbox"><span>Já gastei</span><b id="homeGastos">R$ 0,00</b></div>
 <div class="totalbox" style="margin-top:18px;background:#edf7f1"><span><b>Posso gastar</b></span><b class="green" id="homeDisponivel">R$ 0,00</b></div>
@@ -142,49 +170,13 @@ table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}th,td{t
 <div class="card" style="margin-top:12px"><h3>Compras parceladas</h3><div id="listaParcelados"></div></div>
 <div class="card" style="margin-top:12px"><h3>Próximos compromissos</h3><div id="proximosParcelados"></div></div>
 </section>
-<section id="guardar" class="section">
-<div class="card"><h3>Dinheiro guardado</h3><p style="color:var(--muted);font-size:13px">Registre o valor que realmente separou.</p><div class="formgrid">
-<div><label>Valor</label><input id="sValor" type="number" step="0.01"></div>
-<div><label>Data</label><input id="sData" type="date"></div>
-<div><label>Descrição</label><input id="sDesc" placeholder="Ex.: reserva semanal"></div>
-<div style="display:flex;align-items:end"><button class="primary" onclick="addGuardado()">Adicionar</button></div>
-</div></div>
-<div class="card" style="margin-top:12px"><h3>Histórico</h3><div id="listaGuardado"></div></div>
-</section>
-
-
-<section id="cofrinhos" class="section">
-<div class="card">
-<h3>Novo cofrinho / meta</h3>
-<div class="formgrid">
-<div><label>Nome da meta</label><input id="mNome" placeholder="Ex.: Comprar meu carro"></div>
-<div><label>Valor da meta</label><input id="mMeta" type="number" step="0.01" placeholder="30000"></div>
-<div style="display:flex;align-items:end"><button class="primary" onclick="addMeta()">Criar cofrinho</button></div>
-</div>
-</div>
-<div class="card" style="margin-top:12px">
-<h3>Meus cofrinhos</h3>
-<div id="listaMetas"></div>
-</div>
-<div class="card" style="margin-top:12px"><h3>Histórico de depósitos</h3><div id="listaDepositos"></div></div>
-<div class="card" style="margin-top:12px">
-<h3>Adicionar dinheiro a um cofrinho</h3>
-<div class="formgrid">
-<div><label>Cofrinho</label><select id="depMeta"></select></div>
-<div><label>Valor</label><input id="depValor" type="number" step="0.01"></div>
-<div><label>Data</label><input id="depData" type="date"></div>
-<div><label>Descrição</label><input id="depDesc" placeholder="Ex.: reserva da semana"></div>
-</div>
-<button class="primary" style="margin-top:10px" onclick="addDeposito()">Guardar dinheiro</button>
-</div>
-</section>
 <section id="resumo" class="section">
 <div class="card"><h3>Resumo do mês</h3><div class="grid" style="margin:0">
 <div class="card kpi"><small>Entradas</small><strong id="mesEntrada">R$ 0,00</strong></div>
 <div class="card kpi"><small>Compromissos</small><strong id="mesContas">R$ 0,00</strong></div>
 <div class="card kpi"><small>Gastos</small><strong id="mesGastos">R$ 0,00</strong></div>
 <div class="card kpi"><small>Parcelas</small><strong id="mesParcelas">R$ 0,00</strong></div>
-<div class="card kpi"><small>Guardado</small><strong id="mesGuardado">R$ 0,00</strong></div>
+<div class="card kpi"><small>Nos cofrinhos</small><strong id="mesGuardado">R$ 0,00</strong></div>
 </div><div class="totalbox"><span>Saldo do mês após tudo</span><b id="mesSaldo">R$ 0,00</b></div></div>
 </section>
 </div>
@@ -196,7 +188,7 @@ if(!db.metas) db.metas=[];
 if(!db.depositos) db.depositos=[];
 const brl=v=>(Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const today=()=>new Date().toISOString().slice(0,10);
-['rData','gData','sData','compData','depData'].forEach(id=>document.getElementById(id).value=today());
+['rData','gData','compData','depData'].forEach(id=>document.getElementById(id).value=today());
 function save(){localStorage.setItem(KEY,JSON.stringify(db));render();}
 function money(id){return parseFloat(document.getElementById(id).value)||0}
 function dateBR(d){return new Date(d+'T12:00:00').toLocaleDateString('pt-BR')}
@@ -271,6 +263,10 @@ function clear(ids){ids.forEach(id=>document.getElementById(id).value='')}
 function del(type,id){if(confirm('Excluir este lançamento?')){db[type]=db[type].filter(x=>x.id!==id);save()}}
 function toggleConta(id){let x=db.contas.find(x=>x.id===id);x.pago=!x.pago;save()}
 function saveMeta(){db.meta=money('metaInput');save();alert('Meta salva!')}
+function showTabById(id){
+ const btn=[...document.querySelectorAll('.tabs button')].find(b=>b.getAttribute('onclick')&&b.getAttribute('onclick').includes("showTab('"+id+"'"));
+ if(btn) showTab(id,btn);
+}
 function showTab(id,btn){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));btn.classList.add('active')}
 function table(headers,rows){if(!rows.length)return '<div class="empty">Nenhum lançamento ainda.</div>';return '<div style="overflow:auto"><table><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>'}
 function render(){
@@ -278,12 +274,11 @@ function render(){
  const rec=sum(db.recebimentos,'valor',x=>inWeek(x.data));
  const contas=sum(db.contas,'valor',x=>inWeek(x.data));
  const gastos=sum(db.gastos,'valor',x=>inWeek(x.data));
- const guard=sum(db.guardado,'valor',x=>inWeek(x.data));
  const cofrinhoSemana=sum(db.depositos,'valor',x=>inWeek(x.data));
  const parcelasSemana=db.parcelados.flatMap(x=>parcelasDaCompra(x).map(p=>({...p,idCompra:x.id}))).filter(p=>inWeek(p.data));
  const parcelasValor=sum(parcelasSemana,'valor');
  const compromissosSemana=contas+parcelasValor;
- const disp=rec-contas-parcelasValor-guard-gastos-cofrinhoSemana;
+ const disp=rec-contas-parcelasValor-gastos-cofrinhoSemana;
  document.getElementById('periodo').textContent=dateBR(w.start)+' a '+dateBR(w.end);
  const metaSelect=document.getElementById('depMeta');
  metaSelect.innerHTML=db.metas.length?db.metas.map(m=>`<option value="${m.id}">${m.nome}</option>`).join(''):'<option value="">Crie um cofrinho primeiro</option>';
@@ -305,9 +300,9 @@ function render(){
 
  ['kpiRecebido','homeRecebido'].forEach(id=>document.getElementById(id).textContent=brl(rec));
  ['kpiContas','homeContas'].forEach(id=>document.getElementById(id).textContent=brl(contas));
- ['kpiGuardado','homeGuardado'].forEach(id=>document.getElementById(id).textContent=brl(guard));
- document.getElementById('homeParcelas').textContent=brl(parcelasValor);
+  document.getElementById('homeParcelas').textContent=brl(parcelasValor);
  document.getElementById('homeCofrinhos').textContent=brl(cofrinhoSemana);
+ document.getElementById('kpiGuardado').textContent=brl(cofrinhoSemana);
  ['kpiDisponivel','homeDisponivel'].forEach(id=>{let e=document.getElementById(id);e.textContent=brl(disp);e.className=disp>=0?'green':'red'});
  document.getElementById('homeGastos').textContent=brl(gastos);
  document.getElementById('metaValor').textContent=brl(db.meta);
@@ -349,12 +344,12 @@ function render(){
  proximos.sort((a,b)=>a.data.localeCompare(b.data));
  document.getElementById('proximosCompromissos').innerHTML=proximos.length?table(['Vencimento','Tipo','Descrição','Valor'],proximos.slice(0,15).map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.tipo} ${x.extra}</td><td>${x.desc}</td><td>${brl(x.valor)}</td></tr>`)):'<div class="empty">Nenhum pagamento futuro.</div>';
 
- const me=sum(db.recebimentos,'valor',x=>inMonth(x.data)),mc=sum(db.contas,'valor',x=>inMonth(x.data)),mg=sum(db.gastos,'valor',x=>inMonth(x.data)),ms=sum(db.guardado,'valor',x=>inMonth(x.data));
+ const me=sum(db.recebimentos,'valor',x=>inMonth(x.data)),mc=sum(db.contas,'valor',x=>inMonth(x.data)),mg=sum(db.gastos,'valor',x=>inMonth(x.data));
  const md=sum(db.depositos,'valor',x=>inMonth(x.data));
  const mp=db.parcelados.flatMap(x=>parcelasDaCompra(x)).filter(x=>inMonth(x.data)).reduce((a,x)=>a+x.valor,0);
  const compromissosMes=mc+mp;
- document.getElementById('mesEntrada').textContent=brl(me);document.getElementById('mesContas').textContent=brl(compromissosMes);document.getElementById('mesGastos').textContent=brl(mg);document.getElementById('mesParcelas').textContent=brl(mp);document.getElementById('mesGuardado').textContent=brl(ms+md);document.getElementById('mesSaldo').textContent=brl(me-mc-mg-ms-md-mp);
- const futurosContas=db.contas.filter(x=>!x.pago&&inMonth(x.data)).reduce((a,x)=>a+x.valor,0); const pagosParc=db.parcelados.flatMap(x=>parcelasDaCompra(x).map(pp=>({...pp,id:x.id}))).filter(pp=>inMonth(pp.data)&&!statusParcela(pp.id).includes(pp.numero)).reduce((a,x)=>a+x.valor,0); const livreMes=me-futurosContas-pagosParc-mg-ms-md; document.getElementById('mesLivreRecebido').textContent=brl(me);document.getElementById('mesLivreComp').textContent=brl(futurosContas+pagosParc);document.getElementById('mesLivreGastos').textContent=brl(mg);document.getElementById('mesLivre').textContent=brl(livreMes);
+ document.getElementById('mesEntrada').textContent=brl(me);document.getElementById('mesContas').textContent=brl(compromissosMes);document.getElementById('mesGastos').textContent=brl(mg);document.getElementById('mesParcelas').textContent=brl(mp);document.getElementById('mesGuardado').textContent=brl(md);document.getElementById('mesSaldo').textContent=brl(me-mc-mg-md-mp);
+ const futurosContas=db.contas.filter(x=>!x.pago&&inMonth(x.data)).reduce((a,x)=>a+x.valor,0); const pagosParc=db.parcelados.flatMap(x=>parcelasDaCompra(x).map(pp=>({...pp,id:x.id}))).filter(pp=>inMonth(pp.data)&&!statusParcela(pp.id).includes(pp.numero)).reduce((a,x)=>a+x.valor,0); const livreMes=me-futurosContas-pagosParc-mg-md; document.getElementById('mesLivreRecebido').textContent=brl(me);document.getElementById('mesLivreComp').textContent=brl(futurosContas+pagosParc);document.getElementById('mesLivreGastos').textContent=brl(mg);document.getElementById('mesLivre').textContent=brl(livreMes);
 }
 render();
 </script>
