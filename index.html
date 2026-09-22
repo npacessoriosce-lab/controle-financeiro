@@ -40,7 +40,7 @@ button.primary{background:var(--accent);color:#fff;border:0;border-radius:11px;p
 table{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px}
 th,td{text-align:left;padding:10px 7px;border-bottom:1px solid var(--line);vertical-align:middle}
 th{color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
-.badge{padding:5px 8px;border:0;border-radius:20px;font-size:10px;font-weight:700}
+.badge{padding:8px 12px;border:0;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;touch-action:manipulation;min-width:82px}
 .badge.pago{background:#e6f4ed;color:var(--green)}.badge.pendente{background:#fff4d7;color:#896400}
 .progress{height:8px;background:#e9ecf0;border-radius:10px;overflow:hidden}
 .progress div{height:100%;background:var(--green);border-radius:10px}
@@ -61,7 +61,9 @@ th{color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;le
 .commit-actions{display:flex;align-items:center;gap:6px}
 .commit-toggle{border:1px solid var(--line);background:var(--surface2);color:var(--text);border-radius:9px;padding:7px 9px;font-size:10px;font-weight:700}
 .commit-details{display:none;border-top:1px solid var(--line);padding:8px 12px 10px;background:#fafbfc}
-.commit-item.open .commit-details{display:block}\n.commit-item[hidden]{display:none!important}\n.badge{cursor:pointer;user-select:none;touch-action:manipulation;border:0;display:inline-flex;align-items:center;justify-content:center;min-width:82px;padding:7px 12px;border-radius:999px;font-weight:700}
+.commit-item.open .commit-details{display:block}
+.commit-item[hidden]{display:none!important}
+.badge{cursor:pointer;user-select:none;touch-action:manipulation;border:0;display:inline-flex;align-items:center;justify-content:center;min-width:82px;padding:7px 12px;border-radius:999px;font-weight:700}
 .commit-details table{margin-top:0}
 .filter-count{font-size:10px;color:var(--muted);margin-left:4px}
 @media(max-width:430px){
@@ -211,7 +213,7 @@ const today=()=>new Date().toISOString().slice(0,10);
 ['rData','gData','compData','pData','depData'].forEach(id=>{const e=document.getElementById(id); if(e)e.value=today();});
 function save(){localStorage.setItem(KEY,JSON.stringify(db));}
 
-render();}
+render();
 function money(id){return parseFloat(document.getElementById(id).value)||0}
 function dateBR(d){return new Date(d+'T12:00:00').toLocaleDateString('pt-BR')}
 function weekRange(){
@@ -503,7 +505,7 @@ function render(){
  proximos.sort((a,b)=>a.data.localeCompare(b.data));
  document.getElementById('proximosCompromissos').innerHTML=proximos.length?table(['Vencimento','Tipo','Descrição','Valor'],proximos.slice(0,15).map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.tipo} ${x.extra}</td><td>${x.desc}</td><td>${brl(x.valor)}</td></tr>`)):'<div class="empty">Nenhum pagamento futuro.</div>';
 
- const me=sum(db.recebimentos,'valor',x=>inMonth(x.data)),mc=sum(db.contas,'valor',x=>inMonth(x.data)),mg=sum(db.gastos,'valor',x=>inMonth(x.data));
+ const me=sum(db.recebimentos,'valor',x=>inMonth(x.data)),mc=sum(db.contas,'valor',x=>inMonth(x.data)&&!x.pago),mg=sum(db.gastos,'valor',x=>inMonth(x.data));
  const md=sum(db.depositos,'valor',x=>inMonth(x.data));
  const mp=db.parcelados.flatMap(x=>parcelasDaCompra(x).filter(p=>!statusParcela(x.id).includes(p.numero))).filter(x=>inMonth(x.data)).reduce((a,x)=>a+x.valor,0);
  const compromissosMes=mc+mp;
