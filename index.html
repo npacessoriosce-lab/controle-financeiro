@@ -49,7 +49,26 @@ th{color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;le
 .totalbox:last-child{border-bottom:0}
 @media(min-width:620px){.row{grid-template-columns:1fr 1fr}.grid{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:430px){.container{padding:11px}.card{padding:14px;border-radius:16px}.formgrid{grid-template-columns:1fr}.kpi strong{font-size:18px}header{padding:23px 14px 27px}}
-</style>>
+
+.commit-filters{display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+.commit-filters::-webkit-scrollbar{display:none}
+.commit-filters button{border:1px solid var(--line);background:var(--surface);color:var(--text);padding:9px 12px;border-radius:20px;white-space:nowrap;font-size:11px;font-weight:600}
+.commit-filters button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.commit-item{border:1px solid var(--line);border-radius:14px;background:#fff;margin-bottom:9px;overflow:hidden}
+.commit-main{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px}
+.commit-title{font-size:13px;font-weight:700}
+.commit-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.commit-actions{display:flex;align-items:center;gap:6px}
+.commit-toggle{border:1px solid var(--line);background:var(--surface2);color:var(--text);border-radius:9px;padding:7px 9px;font-size:10px;font-weight:700}
+.commit-details{display:none;border-top:1px solid var(--line);padding:8px 12px 10px;background:#fafbfc}
+.commit-item.open .commit-details{display:block}
+.commit-details table{margin-top:0}
+.filter-count{font-size:10px;color:var(--muted);margin-left:4px}
+@media(max-width:430px){
+ .commit-main{grid-template-columns:1fr}
+ .commit-actions{justify-content:flex-start}
+}
+</style>
 </head>
 <body>
 <header><div class="container"><h1>Meu Controle Financeiro</h1><p>Seu dinheiro, organizado de forma simples.</p></div></header>
@@ -128,7 +147,7 @@ th{color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;le
 </div>
 <div id="parcelExtra" style="display:none;margin-top:10px">
 <div class="formgrid">
-<div><label>Quantidade de parcelas</label><input id="compQtd" type="number" min="2" step="1" placeholder="6"></div>
+<div><label>Quantidade de parcelas</label><input id="compQtd" type="number" min="2" step="1" placeholder="Ex.: 6"></div>
 <div style="display:flex;align-items:end"><span style="font-size:12px;color:var(--muted)">As parcelas serão geradas mês a mês.</span></div>
 </div>
 </div>
@@ -156,20 +175,7 @@ th{color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;le
 </section>
 
 
-<section id="parcelados" class="section">
-<div class="card"><h3>Nova compra parcelada</h3>
-<div class="formgrid">
-<div><label>Descrição</label><input id="pDesc" placeholder="Ex.: TV"></div>
-<div><label>Valor total</label><input id="pTotal" type="number" step="0.01" placeholder="1200"></div>
-<div><label>Quantidade de parcelas</label><input id="pQtd" type="number" min="2" step="1" placeholder="6"></div>
-<div><label>Primeiro vencimento</label><input id="pData" type="date"></div>
-</div>
-<button class="primary" style="margin-top:10px" onclick="addParcelado()">Adicionar compra</button>
-<p style="font-size:12px;color:var(--muted);margin-bottom:0">O sistema calcula a parcela e cria os vencimentos automaticamente mês a mês.</p>
-</div>
-<div class="card" style="margin-top:12px"><h3>Compras parceladas</h3><div id="listaParcelados"></div></div>
-<div class="card" style="margin-top:12px"><h3>Próximos compromissos</h3><div id="proximosParcelados"></div></div>
-</section>
+
 <section id="cofrinhos" class="section">
 <div class="card"><h3>Novo cofrinho</h3><div class="formgrid">
 <div><label>Nome do objetivo</label><input id="mNome" placeholder="Ex.: Comprar meu carro"></div>
@@ -216,6 +222,30 @@ function inMonth(d){return d.slice(0,7)===today().slice(0,7)}
 function sum(arr,key='valor',filter=()=>true){return arr.filter(filter).reduce((a,x)=>a+Number(x[key]||0),0)}
 function addRecebimento(){let v=money('rValor');if(!v)return alert('Informe o valor.');db.recebimentos.push({id:Date.now(),valor:v,data:document.getElementById('rData').value,desc:document.getElementById('rDesc').value||'Recebimento'});clear(['rValor','rDesc']);save()}
 function addConta(){let v=money('cValor'),n=document.getElementById('cNome').value;if(!n||!v)return alert('Informe nome e valor.');db.contas.push({id:Date.now(),nome:n,valor:v,data:document.getElementById('cData').value,pago:false});clear(['cNome','cValor']);save()}
+function toggleCompForm(){
+ const tipo=document.getElementById('tipoComp').value;
+ const extra=document.getElementById('parcelExtra');
+ if(extra) extra.style.display=(tipo==='parcelado')?'block':'none';
+}
+function addCompromisso(){
+ const tipo=document.getElementById('tipoComp').value;
+ const desc=(document.getElementById('compDesc').value||'').trim();
+ const valor=money('compValor');
+ const data=document.getElementById('compData').value;
+ if(!desc||!valor||!data) return alert('Informe descrição, valor e vencimento.');
+ if(tipo==='conta'){
+   db.contas.push({id:Date.now(),nome:desc,valor,data,pago:false});
+   clear(['compDesc','compValor']);
+ }else{
+   const qtd=parseInt(document.getElementById('compQtd').value||'0',10);
+   if(!qtd||qtd<2) return alert('Informe a quantidade de parcelas (mínimo 2).');
+   const valorParcela=Math.round((valor/qtd)*100)/100;
+   db.parcelados.push({id:Date.now(),desc,total:valor,qtd,valorParcela,data});
+   clear(['compDesc','compValor','compQtd']);
+ }
+ save();
+ toggleCompForm();
+}
 
 function addMeta(){
  const nome=document.getElementById('mNome').value.trim();
@@ -287,6 +317,23 @@ function showTabById(id){
  const btn=[...document.querySelectorAll('.tabs button')].find(b=>b.getAttribute('onclick')&&b.getAttribute('onclick').includes("showTab('"+id+"'"));
  if(btn) showTab(id,btn);
 }
+
+function toggleCommitDetails(btn){
+ const item=btn.closest('.commit-item');
+ if(!item)return;
+ item.classList.toggle('open');
+ btn.textContent=item.classList.contains('open')?'Ocultar parcelas':'Ver parcelas';
+}
+function filterCompromissos(filter,btn){
+ document.querySelectorAll('#commitFilters button').forEach(b=>b.classList.remove('active'));
+ if(btn)btn.classList.add('active');
+ document.querySelectorAll('#commitList .commit-item').forEach(item=>{
+   const kind=item.dataset.kind, status=item.dataset.status;
+   const show=filter==='todos'||filter===kind||filter===status;
+   item.style.display=show?'block':'none';
+ });
+}
+
 function showTab(id,btn){const sec=document.getElementById(id); if(!sec)return; document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));sec.classList.add('active');document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active')); if(btn)btn.classList.add('active')}
 function table(headers,rows){if(!rows.length)return '<div class="empty">Nenhum lançamento ainda.</div>';return '<div style="overflow:auto"><table><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>'}
 function setText(id,value){const e=document.getElementById(id); if(e)e.textContent=value}
@@ -333,18 +380,67 @@ function render(){
  const metaInput=document.getElementById('metaInput'); if(metaInput)metaInput.value=db.meta||'';
  setHTML('listaRecebimentos',table(['Data','Descrição','Valor',''],db.recebimentos.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('recebimentos',${x.id})">Excluir</button></td></tr>`)));
  setHTML('listaCompromissos',(function(){
-   const rows=[];
-   db.contas.slice().sort((a,b)=>a.data.localeCompare(b.data)).forEach(x=>{
-     rows.push(`<tr><td>📌 Conta</td><td>${dateBR(x.data)}</td><td>${x.nome}</td><td>${brl(x.valor)}</td><td><button class="badge ${x.pago?'pago':'pendente'}" onclick="toggleConta(${x.id})">${x.pago?'PAGA':'PENDENTE'}</button></td><td class="actions"><button onclick="del('contas',${x.id})">Excluir</button></td></tr>`);
+   const contas=db.contas.slice().sort((a,b)=>a.data.localeCompare(b.data));
+   const parcelados=db.parcelados.slice().sort((a,b)=>a.data.localeCompare(b.data));
+   const filtros=[
+     ['todos','Todos',contas.length+parcelados.length],
+     ['contas','Contas',contas.length],
+     ['parcelados','Parcelados',parcelados.length],
+     ['pendentes','Pendentes',contas.filter(x=>!x.pago).length + parcelados.filter(x=>statusParcela(x.id).length < x.qtd).length],
+     ['pagos','Pagos',contas.filter(x=>x.pago).length + parcelados.filter(x=>statusParcela(x.id).length >= x.qtd).length]
+   ];
+   const itens=[];
+   contas.forEach(x=>{
+     itens.push({tipo:'conta',id:x.id,data:x.data,nome:x.nome,valor:x.valor,pago:x.pago});
    });
-   db.parcelados.slice().forEach(x=>{
+   parcelados.forEach(x=>{
+     itens.push({tipo:'parcelado',id:x.id,data:x.data,nome:x.desc,valor:x.total,qtd:x.qtd,valorParcela:x.valorParcela,pagos:statusParcela(x.id).length});
+   });
+   itens.sort((a,b)=>a.data.localeCompare(b.data));
+
+   const cards=itens.map(x=>{
+     if(x.tipo==='conta'){
+       return `<div class="commit-item" data-kind="conta" data-status="${x.pago?'pago':'pendente'}">
+         <div class="commit-main">
+           <div>
+             <div class="commit-title">📌 ${x.nome}</div>
+             <div class="commit-sub">${dateBR(x.data)} · ${brl(x.valor)}</div>
+           </div>
+           <div class="commit-actions">
+             <button class="badge ${x.pago?'pago':'pendente'}" onclick="toggleConta(${x.id})">${x.pago?'PAGA':'PENDENTE'}</button>
+             <button class="actions" onclick="del('contas',${x.id})">Excluir</button>
+           </div>
+         </div>
+       </div>`;
+     }
      const pagos=statusParcela(x.id);
-     rows.push(`<tr><td>🧾 Parcelado</td><td>${dateBR(x.data)}</td><td>${x.desc}<br><span style="font-size:11px;color:var(--muted)">${x.qtd}x de ${brl(x.valorParcela)}</span></td><td>${brl(x.total)}</td><td>-</td><td class="actions"><button onclick="deleteParcelado(${x.id})">Excluir</button></td></tr>`);
-     parcelasDaCompra(x).forEach(pp=>{
-       rows.push(`<tr><td style="padding-left:28px;font-size:11px">↳ ${pp.numero}/${pp.total}</td><td>${dateBR(pp.data)}</td><td>Parcela</td><td>${brl(pp.valor)}</td><td><button class="badge ${pagos.includes(pp.numero)?'pago':'pendente'}" onclick="toggleParcela(${x.id},${pp.numero})">${pagos.includes(pp.numero)?'PAGA':'PENDENTE'}</button></td><td></td></tr>`);
-     });
-   });
-   return rows.length?`<div style="overflow:auto"><table><thead><tr><th>Tipo</th><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`:'<div class="empty">Nenhuma conta ou compra parcelada cadastrada.</div>';
+     const detalhes=parcelasDaCompra(x).map(pp=>`<tr>
+       <td>${pp.numero}/${pp.total}</td><td>${dateBR(pp.data)}</td><td>${brl(pp.valor)}</td>
+       <td><button class="badge ${pagos.includes(pp.numero)?'pago':'pendente'}" onclick="toggleParcela(${x.id},${pp.numero})">${pagos.includes(pp.numero)?'PAGA':'PENDENTE'}</button></td>
+     </tr>`).join('');
+     const statusCompra=pagos.length>=x.qtd?'pago':'pendente';
+     return `<div class="commit-item" data-kind="parcelado" data-status="${statusCompra}">
+       <div class="commit-main">
+         <div>
+           <div class="commit-title">🧾 ${x.nome}</div>
+           <div class="commit-sub">${brl(x.valor)} · ${x.qtd}x de ${brl(x.valorParcela)} · 1º vencimento ${dateBR(x.data)}</div>
+         </div>
+         <div class="commit-actions">
+           <button class="commit-toggle" onclick="toggleCommitDetails(this)">Ver parcelas</button>
+           <button class="actions" onclick="deleteParcelado(${x.id})">Excluir</button>
+         </div>
+       </div>
+       <div class="commit-details">
+         <table><thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead>
+         <tbody>${detalhes}</tbody></table>
+       </div>
+     </div>`;
+   }).join('');
+
+   return `<div class="commit-filters" id="commitFilters">
+     ${filtros.map((f,i)=>`<button class="${i===0?'active':''}" data-filter="${f[0]}" onclick="filterCompromissos('${f[0]}',this)">${f[1]} <span class="filter-count">${f[2]}</span></button>`).join('')}
+   </div>
+   <div id="commitList">${cards || '<div class="empty">Nenhuma conta ou compra parcelada cadastrada.</div>'}</div>`;
  })());
  setHTML('listaGastos',table(['Data','Descrição','Categoria','Valor',''],db.gastos.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${x.cat}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('gastos',${x.id})">Excluir</button></td></tr>`)));
  setHTML('listaGuardado',table(['Data','Descrição','Valor',''],db.guardado.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('guardado',${x.id})">Excluir</button></td></tr>`)));
