@@ -314,9 +314,20 @@ function del(type,id){if(confirm('Excluir este lançamento?')){db[type]=db[type]
 function toggleConta(id){
   const conta = db.contas.find(x => Number(x.id) === Number(id));
   if(!conta) return;
+
+  // Alterna o status e salva.
   conta.pago = !Boolean(conta.pago);
   localStorage.setItem(KEY, JSON.stringify(db));
+
+  // Descobre qual filtro estava selecionado antes de redesenhar.
+  const ativo = document.querySelector('#commitFilters button.active');
+  const filtroAtual = ativo ? ativo.dataset.filter : 'todos';
+
   render();
+
+  // Reaplica o filtro depois do render.
+  const novoBotao = document.querySelector(`#commitFilters button[data-filter="${filtroAtual}"]`);
+  if(novoBotao) filterCompromissos(filtroAtual, novoBotao);
 }
 function saveMeta(){db.meta=money('metaInput');save();alert('Meta salva!')}
 function showTabById(id){
@@ -331,13 +342,15 @@ function toggleCommitDetails(btn){
  btn.textContent=item.classList.contains('open')?'Ocultar parcelas':'Ver parcelas';
 }
 function filterCompromissos(filter,btn){
- document.querySelectorAll('#commitFilters button').forEach(b=>b.classList.remove('active'));
- if(btn)btn.classList.add('active');
- document.querySelectorAll('#commitList .commit-item').forEach(item=>{
-   const kind=item.dataset.kind, status=item.dataset.status;
-   const show=filter==='todos'||filter===kind||filter===status;
-   item.style.display=show?'block':'none';
- });
+  document.querySelectorAll('#commitFilters button').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+
+  document.querySelectorAll('#commitList .commit-item').forEach(item=>{
+    const kind=item.dataset.kind;
+    const status=item.dataset.status;
+    const show = filter==='todos' || filter===kind || filter===status;
+    item.style.display = show ? 'block' : 'none';
+  });
 }
 
 function showTab(id,btn){const sec=document.getElementById(id); if(!sec)return; document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));sec.classList.add('active');document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active')); if(btn)btn.classList.add('active')}
