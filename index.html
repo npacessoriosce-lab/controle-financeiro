@@ -61,7 +61,7 @@ th{color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;le
 .commit-actions{display:flex;align-items:center;gap:6px}
 .commit-toggle{border:1px solid var(--line);background:var(--surface2);color:var(--text);border-radius:9px;padding:7px 9px;font-size:10px;font-weight:700}
 .commit-details{display:none;border-top:1px solid var(--line);padding:8px 12px 10px;background:#fafbfc}
-.commit-item.open .commit-details{display:block}
+.commit-item.open .commit-details{display:block}\n.badge{cursor:pointer}
 .commit-details table{margin-top:0}
 .filter-count{font-size:10px;color:var(--muted);margin-left:4px}
 @media(max-width:430px){
@@ -311,7 +311,13 @@ function addParcelado(){
 }
 function clear(ids){ids.forEach(id=>{const e=document.getElementById(id); if(e)e.value=''})}
 function del(type,id){if(confirm('Excluir este lançamento?')){db[type]=db[type].filter(x=>x.id!==id);save()}}
-function toggleConta(id){let x=db.contas.find(x=>x.id===id);x.pago=!x.pago;save()}
+function toggleConta(id){
+  const conta = db.contas.find(x => Number(x.id) === Number(id));
+  if(!conta) return;
+  conta.pago = !Boolean(conta.pago);
+  localStorage.setItem(KEY, JSON.stringify(db));
+  render();
+}
 function saveMeta(){db.meta=money('metaInput');save();alert('Meta salva!')}
 function showTabById(id){
  const btn=[...document.querySelectorAll('.tabs button')].find(b=>b.getAttribute('onclick')&&b.getAttribute('onclick').includes("showTab('"+id+"'"));
