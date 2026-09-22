@@ -209,40 +209,7 @@ if(!db.depositos) db.depositos=[];
 const brl=v=>(Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const today=()=>new Date().toISOString().slice(0,10);
 ['rData','gData','compData','pData','depData'].forEach(id=>{const e=document.getElementById(id); if(e)e.value=today();});
-function save(){localStorage.setItem(KEY,JSON.stringify(db));
-// Controle de pagamento das contas e parcelas.
-if(!window.__financePaymentHandler){
-  window.__financePaymentHandler = true;
-  document.addEventListener('click', function(ev){
-    const contaBtn = ev.target.closest && ev.target.closest('[data-pay-conta]');
-    const parcelaBtn = ev.target.closest && ev.target.closest('[data-pay-parcela]');
-
-    if(contaBtn){
-      ev.preventDefault(); ev.stopPropagation();
-      const id = contaBtn.getAttribute('data-pay-conta');
-      const conta = db.contas.find(c => String(c.id) === String(id));
-      if(conta){
-        conta.pago = !Boolean(conta.pago);
-        localStorage.setItem(KEY, JSON.stringify(db));
-        render();
-      }
-      return;
-    }
-
-    if(parcelaBtn){
-      ev.preventDefault(); ev.stopPropagation();
-      const id = parcelaBtn.getAttribute('data-pay-parcela');
-      const num = Number(parcelaBtn.getAttribute('data-parcela-num'));
-      const chave = 'parcela_paga_' + id;
-      let pagas = [];
-      try { pagas = JSON.parse(localStorage.getItem(chave) || '[]').map(Number); } catch(e){}
-      pagas = pagas.includes(num) ? pagas.filter(n => n !== num) : [...pagas, num];
-      localStorage.setItem(chave, JSON.stringify(pagas));
-      render();
-      return;
-    }
-  }, true);
-}
+function save(){localStorage.setItem(KEY,JSON.stringify(db));}
 
 render();}
 function money(id){return parseFloat(document.getElementById(id).value)||0}
@@ -325,8 +292,10 @@ function statusParcela(x){
 }
 function toggleParcela(id,num){
  const chave='parcela_paga_'+id;
- let arr=JSON.parse(localStorage.getItem(chave)||'[]');
- arr=arr.includes(num)?arr.filter(n=>n!==num):arr.concat(num);
+ let arr=[];
+ try{arr=JSON.parse(localStorage.getItem(chave)||'[]').map(Number)}catch(e){arr=[]}
+ const n=Number(num);
+ arr=arr.includes(n)?arr.filter(x=>x!==n):arr.concat(n);
  localStorage.setItem(chave,JSON.stringify(arr));
  render();
 }
@@ -347,11 +316,10 @@ function addParcelado(){
 function clear(ids){ids.forEach(id=>{const e=document.getElementById(id); if(e)e.value=''})}
 function del(type,id){if(confirm('Excluir este lançamento?')){db[type]=db[type].filter(x=>x.id!==id);save()}}
 function toggleConta(id){
-  const conta = db.contas.find(c => String(c.id) === String(id));
-  if(!conta) return;
-  conta.pago = !conta.pago;
-  localStorage.setItem(KEY, JSON.stringify(db));
-  render();
+ const conta=db.contas.find(x=>String(x.id)===String(id));
+ if(!conta)return;
+ conta.pago=!Boolean(conta.pago);
+ save();
 }
 function saveMeta(){db.meta=money('metaInput');save();alert('Meta salva!')}
 function showTabById(id){
@@ -394,10 +362,10 @@ function setHTML(id,value){const e=document.getElementById(id); if(e)e.innerHTML
 function render(){
  const w=weekRange();
  const rec=sum(db.recebimentos,'valor',x=>inWeek(x.data));
- const contas=sum(db.contas,'valor',x=>inWeek(x.data));
+ const contas=sum(db.contas,'valor',x=>inWeek(x.data)&&!x.pago);
  const gastos=sum(db.gastos,'valor',x=>inWeek(x.data));
  const cofrinhoSemana=sum(db.depositos,'valor',x=>inWeek(x.data));
- const parcelasSemana=db.parcelados.flatMap(x=>parcelasDaCompra(x).map(p=>({...p,idCompra:x.id}))).filter(p=>inWeek(p.data));
+ const parcelasSemana=db.parcelados.flatMap(x=>parcelasDaCompra(x).map(p=>({...p,idCompra:x.id}))).filter(p=>inWeek(p.data)&&!statusParcela(p.idCompra).includes(p.numero));
  const parcelasValor=sum(parcelasSemana,'valor');
  const disp=rec-contas-parcelasValor-gastos-cofrinhoSemana;
  setText('periodo',dateBR(w.start)+' a '+dateBR(w.end));
@@ -460,7 +428,7 @@ function render(){
              <div class="commit-sub">${dateBR(x.data)} · ${brl(x.valor)}</div>
            </div>
            <div class="commit-actions">
-             <button type="button" class="badge ${x.pago?'pago':'pendente'}" data-pay-conta="${x.id}" title="Toque para mudar o status">${x.pago?'PAGA':'PENDENTE'}</button>
+             <button type="button" class="badge ${x.pago?'pago':'pendente'}" onclick="toggleConta(${x.id})" title="Toque para mudar o status">${x.pago?'PAGA':'PENDENTE'}</button>
              <button class="actions" onclick="del('contas',${x.id})">Excluir</button>
            </div>
          </div>
@@ -470,7 +438,7 @@ function render(){
      const detalhes=parcelasDaCompra(x).map(pp=>`<tr>
        <td>${pp.numero}/${pp.total}</td><td>${dateBR(pp.data)}</td><td>${brl(pp.valor)}</td>
        <td><button type="button" class="badge ${pagos.includes(pp.numero)?'pago':'pendente'}"
-         data-pay-parcela="${x.id}" data-parcela-num="${pp.numero}"
+         onclick="toggleParcela(${x.id},${pp.numero})"
          title="Marcar parcela como paga">${pagos.includes(pp.numero)?'PAGA':'PENDENTE'}</button></td>
      </tr>`).join('');
      const statusCompra=pagos.length>=x.qtd?'pago':'pendente';
@@ -521,7 +489,7 @@ function render(){
    const parcelas=parcelasDaCompra(x);
    parcelRows.push(`<tr><td><b>${x.desc}</b><br><span style="font-size:11px;color:var(--muted)">${brl(x.total)} em ${x.qtd}x de ${brl(x.valorParcela)}</span></td><td>${dateBR(x.data)}</td><td>${x.qtd}x</td><td class="actions"><button onclick="deleteParcelado(${x.id})">Excluir</button></td></tr>`);
    const detalhes=parcelas.map(pp=>`<tr><td>${pp.numero}/${pp.total}</td><td>${dateBR(pp.data)}</td><td>${brl(pp.valor)}</td><td><button type="button" class="badge ${pagos.includes(pp.numero)?'pago':'pendente'}"
-         data-pay-parcela="${x.id}" data-parcela-num="${pp.numero}"
+         onclick="toggleParcela(${x.id},${pp.numero})"
          title="Marcar parcela como paga">${pagos.includes(pp.numero)?'PAGA':'PENDENTE'}</button></td></tr>`).join('');
    parcelRows.push(`<tr><td colspan="4" style="padding:0 0 10px"><div style="background:#fafbfc;border-radius:10px;padding:8px;overflow:auto"><table><thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead><tbody>${detalhes}</tbody></table></div></td></tr>`);
  });
@@ -537,7 +505,7 @@ function render(){
 
  const me=sum(db.recebimentos,'valor',x=>inMonth(x.data)),mc=sum(db.contas,'valor',x=>inMonth(x.data)),mg=sum(db.gastos,'valor',x=>inMonth(x.data));
  const md=sum(db.depositos,'valor',x=>inMonth(x.data));
- const mp=db.parcelados.flatMap(x=>parcelasDaCompra(x)).filter(x=>inMonth(x.data)).reduce((a,x)=>a+x.valor,0);
+ const mp=db.parcelados.flatMap(x=>parcelasDaCompra(x).filter(p=>!statusParcela(x.id).includes(p.numero))).filter(x=>inMonth(x.data)).reduce((a,x)=>a+x.valor,0);
  const compromissosMes=mc+mp;
  document.getElementById('mesEntrada').textContent=brl(me);document.getElementById('mesContas').textContent=brl(compromissosMes);document.getElementById('mesGastos').textContent=brl(mg);document.getElementById('mesParcelas').textContent=brl(mp);document.getElementById('mesGuardado').textContent=brl(md);document.getElementById('mesSaldo').textContent=brl(me-mc-mg-md-mp);
  const futurosContas=db.contas.filter(x=>!x.pago&&inMonth(x.data)).reduce((a,x)=>a+x.valor,0); const pagosParc=db.parcelados.flatMap(x=>parcelasDaCompra(x).map(pp=>({...pp,id:x.id}))).filter(pp=>inMonth(pp.data)&&!statusParcela(pp.id).includes(pp.numero)).reduce((a,x)=>a+x.valor,0); const livreMes=me-futurosContas-pagosParc-mg-md; document.getElementById('mesLivreRecebido').textContent=brl(me);document.getElementById('mesLivreComp').textContent=brl(futurosContas+pagosParc);document.getElementById('mesLivreGastos').textContent=brl(mg);document.getElementById('mesLivre').textContent=brl(livreMes);
