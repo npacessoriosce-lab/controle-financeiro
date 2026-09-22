@@ -52,7 +52,7 @@ th{color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;le
 
 .commit-filters{display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
 .commit-filters::-webkit-scrollbar{display:none}
-.commit-filters button{border:1px solid var(--line);background:var(--surface);color:var(--text);padding:9px 12px;border-radius:20px;white-space:nowrap;font-size:11px;font-weight:600}
+.commit-filters button{cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:9px 12px;border-radius:20px;white-space:nowrap;font-size:11px;font-weight:600}
 .commit-filters button.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .commit-item{border:1px solid var(--line);border-radius:14px;background:#fff;margin-bottom:9px;overflow:hidden}
 .commit-main{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px}
@@ -61,7 +61,7 @@ th{color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;le
 .commit-actions{display:flex;align-items:center;gap:6px}
 .commit-toggle{border:1px solid var(--line);background:var(--surface2);color:var(--text);border-radius:9px;padding:7px 9px;font-size:10px;font-weight:700}
 .commit-details{display:none;border-top:1px solid var(--line);padding:8px 12px 10px;background:#fafbfc}
-.commit-item.open .commit-details{display:block}\n.badge{cursor:pointer}
+.commit-item.open .commit-details{display:block}\n.commit-item[hidden]{display:none!important}\n.badge{cursor:pointer}
 .commit-details table{margin-top:0}
 .filter-count{font-size:10px;color:var(--muted);margin-left:4px}
 @media(max-width:430px){
@@ -312,22 +312,11 @@ function addParcelado(){
 function clear(ids){ids.forEach(id=>{const e=document.getElementById(id); if(e)e.value=''})}
 function del(type,id){if(confirm('Excluir este lançamento?')){db[type]=db[type].filter(x=>x.id!==id);save()}}
 function toggleConta(id){
-  const conta = db.contas.find(x => Number(x.id) === Number(id));
+  const conta = db.contas.find(c => String(c.id) === String(id));
   if(!conta) return;
-
-  // Alterna o status e salva.
-  conta.pago = !Boolean(conta.pago);
+  conta.pago = !conta.pago;
   localStorage.setItem(KEY, JSON.stringify(db));
-
-  // Descobre qual filtro estava selecionado antes de redesenhar.
-  const ativo = document.querySelector('#commitFilters button.active');
-  const filtroAtual = ativo ? ativo.dataset.filter : 'todos';
-
   render();
-
-  // Reaplica o filtro depois do render.
-  const novoBotao = document.querySelector(`#commitFilters button[data-filter="${filtroAtual}"]`);
-  if(novoBotao) filterCompromissos(filtroAtual, novoBotao);
 }
 function saveMeta(){db.meta=money('metaInput');save();alert('Meta salva!')}
 function showTabById(id){
@@ -342,14 +331,17 @@ function toggleCommitDetails(btn){
  btn.textContent=item.classList.contains('open')?'Ocultar parcelas':'Ver parcelas';
 }
 function filterCompromissos(filter,btn){
-  document.querySelectorAll('#commitFilters button').forEach(b=>b.classList.remove('active'));
-  if(btn)btn.classList.add('active');
-
-  document.querySelectorAll('#commitList .commit-item').forEach(item=>{
-    const kind=item.dataset.kind;
-    const status=item.dataset.status;
-    const show = filter==='todos' || filter===kind || filter===status;
-    item.style.display = show ? 'block' : 'none';
+  const buttons = document.querySelectorAll('#commitFilters button[data-filter]');
+  buttons.forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+  document.querySelectorAll('#commitList .commit-item').forEach(item => {
+    const kind = item.getAttribute('data-kind');
+    const status = item.getAttribute('data-status');
+    let show = true;
+    if(filter === 'contas') show = kind === 'conta';
+    else if(filter === 'parcelados') show = kind === 'parcelado';
+    else if(filter === 'pendentes') show = status === 'pendente';
+    else if(filter === 'pagos') show = status === 'pago';
+    item.hidden = !show;
   });
 }
 
@@ -426,7 +418,7 @@ function render(){
              <div class="commit-sub">${dateBR(x.data)} · ${brl(x.valor)}</div>
            </div>
            <div class="commit-actions">
-             <button class="badge ${x.pago?'pago':'pendente'}" onclick="toggleConta(${x.id})">${x.pago?'PAGA':'PENDENTE'}</button>
+             <button type="button" class="badge ${x.pago?'pago':'pendente'}" onclick="event.stopPropagation();toggleConta(${x.id})">${x.pago?'PAGA':'PENDENTE'}</button>
              <button class="actions" onclick="del('contas',${x.id})">Excluir</button>
            </div>
          </div>
@@ -435,7 +427,7 @@ function render(){
      const pagos=statusParcela(x.id);
      const detalhes=parcelasDaCompra(x).map(pp=>`<tr>
        <td>${pp.numero}/${pp.total}</td><td>${dateBR(pp.data)}</td><td>${brl(pp.valor)}</td>
-       <td><button class="badge ${pagos.includes(pp.numero)?'pago':'pendente'}" onclick="toggleParcela(${x.id},${pp.numero})">${pagos.includes(pp.numero)?'PAGA':'PENDENTE'}</button></td>
+       <td><button type="button" class="badge ${pagos.includes(pp.numero)?'pago':'pendente'}" onclick="toggleParcela(${x.id},${pp.numero})">${pagos.includes(pp.numero)?'PAGA':'PENDENTE'}</button></td>
      </tr>`).join('');
      const statusCompra=pagos.length>=x.qtd?'pago':'pendente';
      return `<div class="commit-item" data-kind="parcelado" data-status="${statusCompra}">
@@ -456,11 +448,27 @@ function render(){
      </div>`;
    }).join('');
 
-   return `<div class="commit-filters" id="commitFilters">
-     ${filtros.map((f,i)=>`<button class="${i===0?'active':''}" data-filter="${f[0]}" onclick="filterCompromissos('${f[0]}',this)">${f[1]} <span class="filter-count">${f[2]}</span></button>`).join('')}
+   return `<div style="font-size:11px;color:var(--muted);margin:2px 0 9px">
+          Toque em <b>PENDENTE</b> quando fizer o pagamento. Ele muda para <b>PAGA</b>.
+        </div>
+   <div class="commit-filters" id="commitFilters">
+     ${filtros.map((f,i)=>`<button type="button" class="${i===0?'active':''}" data-filter="${f[0]}">${f[1]} <span class="filter-count">${f[2]}</span></button>`).join('')}
    </div>
    <div id="commitList">${cards || '<div class="empty">Nenhuma conta ou compra parcelada cadastrada.</div>'}</div>`;
  })());
+
+ // Eventos dos filtros: usando addEventListener evita falhas de onclick no celular.
+ const filtroBox = document.getElementById('commitFilters');
+ if(filtroBox && !filtroBox.dataset.bound){
+   filtroBox.dataset.bound = '1';
+   filtroBox.addEventListener('click', function(ev){
+     const btn = ev.target.closest('button[data-filter]');
+     if(!btn) return;
+     ev.preventDefault();
+     filterCompromissos(btn.dataset.filter, btn);
+   });
+ }
+
  setHTML('listaGastos',table(['Data','Descrição','Categoria','Valor',''],db.gastos.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${x.cat}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('gastos',${x.id})">Excluir</button></td></tr>`)));
  setHTML('listaGuardado',table(['Data','Descrição','Valor',''],db.guardado.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('guardado',${x.id})">Excluir</button></td></tr>`)));
  const parcelRows=[];
@@ -468,7 +476,7 @@ function render(){
    const pagos=statusParcela(x.id);
    const parcelas=parcelasDaCompra(x);
    parcelRows.push(`<tr><td><b>${x.desc}</b><br><span style="font-size:11px;color:var(--muted)">${brl(x.total)} em ${x.qtd}x de ${brl(x.valorParcela)}</span></td><td>${dateBR(x.data)}</td><td>${x.qtd}x</td><td class="actions"><button onclick="deleteParcelado(${x.id})">Excluir</button></td></tr>`);
-   const detalhes=parcelas.map(pp=>`<tr><td>${pp.numero}/${pp.total}</td><td>${dateBR(pp.data)}</td><td>${brl(pp.valor)}</td><td><button class="badge ${pagos.includes(pp.numero)?'pago':'pendente'}" onclick="toggleParcela(${x.id},${pp.numero})">${pagos.includes(pp.numero)?'PAGA':'PENDENTE'}</button></td></tr>`).join('');
+   const detalhes=parcelas.map(pp=>`<tr><td>${pp.numero}/${pp.total}</td><td>${dateBR(pp.data)}</td><td>${brl(pp.valor)}</td><td><button type="button" class="badge ${pagos.includes(pp.numero)?'pago':'pendente'}" onclick="toggleParcela(${x.id},${pp.numero})">${pagos.includes(pp.numero)?'PAGA':'PENDENTE'}</button></td></tr>`).join('');
    parcelRows.push(`<tr><td colspan="4" style="padding:0 0 10px"><div style="background:#fafbfc;border-radius:10px;padding:8px;overflow:auto"><table><thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead><tbody>${detalhes}</tbody></table></div></td></tr>`);
  });
  setHTML('listaParcelados',parcelRows.length?`<div style="overflow:auto"><table><thead><tr><th>Compra</th><th>1º vencimento</th><th>Parcelas</th><th></th></tr></thead><tbody>${parcelRows.join('')}</tbody></table></div>`:'<div class="empty">Nenhuma compra parcelada.</div>');
