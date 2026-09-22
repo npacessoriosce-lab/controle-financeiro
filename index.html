@@ -301,6 +301,56 @@ function toggleParcela(id,num){
  localStorage.setItem(chave,JSON.stringify(arr));
  render();
 }
+
+function editarConta(id){
+ const c=db.contas.find(x=>String(x.id)===String(id));
+ if(!c)return;
+ const nome=prompt('Descrição da conta:',c.nome);
+ if(nome===null)return;
+ const valorTxt=prompt('Valor da conta:',String(c.valor).replace('.',','));
+ if(valorTxt===null)return;
+ const data=prompt('Vencimento (AAAA-MM-DD):',c.data);
+ if(data===null)return;
+ const valor=Number(String(valorTxt).replace(',','.'));
+ if(!nome.trim()||!valor||!data)return alert('Dados inválidos.');
+ c.nome=nome.trim(); c.valor=valor; c.data=data;
+ save();
+}
+
+function editarParcelado(id){
+ const x=db.parcelados.find(p=>String(p.id)===String(id));
+ if(!x)return;
+ const desc=prompt('Descrição da compra:',x.desc);
+ if(desc===null)return;
+ const totalTxt=prompt('Valor total:',String(x.total).replace('.',','));
+ if(totalTxt===null)return;
+ const qtdTxt=prompt('Quantidade de parcelas:',String(x.qtd));
+ if(qtdTxt===null)return;
+ const data=prompt('Primeiro vencimento (AAAA-MM-DD):',x.data);
+ if(data===null)return;
+ const total=Number(String(totalTxt).replace(',','.'));
+ const qtd=parseInt(qtdTxt,10);
+ if(!desc.trim()||!total||!qtd||qtd<2||!data)return alert('Dados inválidos.');
+ x.desc=desc.trim(); x.total=total; x.qtd=qtd; x.valorParcela=Math.round((total/qtd)*100)/100; x.data=data;
+ localStorage.removeItem('parcela_paga_'+id);
+ save();
+}
+
+function excluirParcela(id,num){
+ const x=db.parcelados.find(p=>String(p.id)===String(id));
+ if(!x)return;
+ if(x.qtd<=1){ return deleteParcelado(id); }
+ if(!confirm('Excluir esta parcela porque você já pagou? Ela não aparecerá mais na lista.'))return;
+ if(!Array.isArray(x.excluidas)) x.excluidas=[];
+ if(!x.excluidas.includes(Number(num))) x.excluidas.push(Number(num));
+ localStorage.setItem('parcela_excluida_'+id,JSON.stringify(x.excluidas));
+ save();
+}
+function parcelasAtivas(x){
+ const excl=Array.isArray(x.excluidas)?x.excluidas:JSON.parse(localStorage.getItem('parcela_excluida_'+x.id)||'[]');
+ return parcelasDaCompra(x).filter(p=>!excl.map(Number).includes(Number(p.numero)));
+}
+
 function deleteParcelado(id){
  if(confirm('Excluir esta compra parcelada e todas as suas parcelas?')){
    db.parcelados=db.parcelados.filter(x=>x.id!==id);
@@ -343,17 +393,16 @@ function toggleCommitDetails(btn){
  btn.textContent=item.classList.contains('open')?'Ocultar parcelas':'Ver parcelas';
 }
 function filterCompromissos(filter,btn){
-  const buttons = document.querySelectorAll('#commitFilters button[data-filter]');
-  buttons.forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
-  document.querySelectorAll('#commitList .commit-item').forEach(item => {
-    const kind = item.getAttribute('data-kind');
-    const status = item.getAttribute('data-status');
-    let show = true;
-    if(filter === 'contas') show = kind === 'conta';
-    else if(filter === 'parcelados') show = kind === 'parcelado';
-    else if(filter === 'pendentes') show = status === 'pendente';
-    else if(filter === 'pagos') show = status === 'pago';
-    item.hidden = !show;
+  const buttons=document.querySelectorAll('#commitFilters button[data-filter]');
+  buttons.forEach(b=>b.classList.toggle('active',b.dataset.filter===filter));
+  document.querySelectorAll('#commitList .commit-item').forEach(item=>{
+    const kind=item.getAttribute('data-kind');
+    let show=true;
+    if(filter==='contas') show=kind==='conta';
+    else if(filter==='parcelados') show=kind==='parcelado';
+    else if(filter==='pagos') show=false;
+    else if(filter==='pendentes') show=true;
+    item.hidden=!show;
   });
 }
 
@@ -367,7 +416,7 @@ function render(){
  const contas=sum(db.contas,'valor',x=>inWeek(x.data)&&!x.pago);
  const gastos=sum(db.gastos,'valor',x=>inWeek(x.data));
  const cofrinhoSemana=sum(db.depositos,'valor',x=>inWeek(x.data));
- const parcelasSemana=db.parcelados.flatMap(x=>parcelasDaCompra(x).map(p=>({...p,idCompra:x.id}))).filter(p=>inWeek(p.data)&&!statusParcela(p.idCompra).includes(p.numero));
+ const parcelasSemana=db.parcelados.flatMap(x=>parcelasAtivas(x).map(p=>({...p,idCompra:x.id}))).filter(p=>inWeek(p.data));
  const parcelasValor=sum(parcelasSemana,'valor');
  const disp=rec-contas-parcelasValor-gastos-cofrinhoSemana;
  setText('periodo',dateBR(w.start)+' a '+dateBR(w.end));
@@ -409,62 +458,56 @@ function render(){
      ['todos','Todos',contas.length+parcelados.length],
      ['contas','Contas',contas.length],
      ['parcelados','Parcelados',parcelados.length],
-     ['pendentes','Pendentes',contas.filter(x=>!x.pago).length + parcelados.filter(x=>statusParcela(x.id).length < x.qtd).length],
-     ['pagos','Pagos',contas.filter(x=>x.pago).length + parcelados.filter(x=>statusParcela(x.id).length >= x.qtd).length]
+     ['pendentes','Pendentes',contas.length+parcelados.length],
+     ['pagos','Pagos',0]
    ];
    const itens=[];
-   contas.forEach(x=>{
-     itens.push({tipo:'conta',id:x.id,data:x.data,nome:x.nome,valor:x.valor,pago:x.pago});
-   });
-   parcelados.forEach(x=>{
-     itens.push({tipo:'parcelado',id:x.id,data:x.data,nome:x.desc,valor:x.total,qtd:x.qtd,valorParcela:x.valorParcela,pagos:statusParcela(x.id).length});
-   });
+   contas.forEach(x=>itens.push({tipo:'conta',id:x.id,data:x.data,nome:x.nome,valor:x.valor}));
+   parcelados.forEach(x=>itens.push({tipo:'parcelado',id:x.id,data:x.data,nome:x.desc,valor:x.total,qtd:x.qtd,valorParcela:x.valorParcela}));
    itens.sort((a,b)=>a.data.localeCompare(b.data));
 
    const cards=itens.map(x=>{
      if(x.tipo==='conta'){
-       return `<div class="commit-item" data-kind="conta" data-status="${x.pago?'pago':'pendente'}">
+       return `<div class="commit-item" data-kind="conta" data-status="pendente">
          <div class="commit-main">
            <div>
              <div class="commit-title">📌 ${x.nome}</div>
              <div class="commit-sub">${dateBR(x.data)} · ${brl(x.valor)}</div>
            </div>
            <div class="commit-actions">
-             <button type="button" class="badge ${x.pago?'pago':'pendente'}" onclick="toggleConta(${x.id})" title="Toque para mudar o status">${x.pago?'PAGA':'PENDENTE'}</button>
-             <button class="actions" onclick="del('contas',${x.id})">Excluir</button>
+             <button type="button" class="actions" onclick="editarConta(${x.id})">Editar</button>
+             <button type="button" class="actions" onclick="del('contas',${x.id})">Excluir</button>
            </div>
          </div>
        </div>`;
      }
-     const pagos=statusParcela(x.id);
-     const detalhes=parcelasDaCompra(x).map(pp=>`<tr>
+     const detalhes=parcelasAtivas(x).map(pp=>`<tr>
        <td>${pp.numero}/${pp.total}</td><td>${dateBR(pp.data)}</td><td>${brl(pp.valor)}</td>
-       <td><button type="button" class="badge ${pagos.includes(pp.numero)?'pago':'pendente'}"
-         onclick="toggleParcela(${x.id},${pp.numero})"
-         title="Marcar parcela como paga">${pagos.includes(pp.numero)?'PAGA':'PENDENTE'}</button></td>
+       <td><button type="button" class="actions" onclick="excluirParcela(${x.id},${pp.numero})">Excluir parcela</button></td>
      </tr>`).join('');
-     const statusCompra=pagos.length>=x.qtd?'pago':'pendente';
-     return `<div class="commit-item" data-kind="parcelado" data-status="${statusCompra}">
+     const restantes=parcelasAtivas(x).reduce((s,p)=>s+Number(p.valor||0),0);
+     return `<div class="commit-item" data-kind="parcelado" data-status="pendente">
        <div class="commit-main">
          <div>
            <div class="commit-title">🧾 ${x.nome}</div>
-           <div class="commit-sub">${brl(x.valor)} · ${x.qtd}x de ${brl(x.valorParcela)} · 1º vencimento ${dateBR(x.data)}</div>
+           <div class="commit-sub">${brl(x.valor)} · ${x.qtd}x de ${brl(x.valorParcela)} · Restam ${brl(restantes)} · 1º vencimento ${dateBR(x.data)}</div>
          </div>
          <div class="commit-actions">
-           <button class="commit-toggle" onclick="toggleCommitDetails(this)">Ver parcelas</button>
-           <button class="actions" onclick="deleteParcelado(${x.id})">Excluir</button>
+           <button type="button" class="actions" onclick="editarParcelado(${x.id})">Editar</button>
+           <button type="button" class="commit-toggle" onclick="toggleCommitDetails(this)">Ver parcelas</button>
+           <button type="button" class="actions" onclick="deleteParcelado(${x.id})">Excluir</button>
          </div>
        </div>
        <div class="commit-details">
-         <table><thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead>
-         <tbody>${detalhes}</tbody></table>
+         <table><thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Ação</th></tr></thead>
+         <tbody>${detalhes || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Todas as parcelas foram excluídas.</td></tr>'}</tbody></table>
        </div>
      </div>`;
    }).join('');
 
    return `<div style="font-size:11px;color:var(--muted);margin:2px 0 9px">
-          Toque no botão <b>PENDENTE</b> de cada parcela quando fizer o pagamento. Ele muda para <b>PAGA</b> e o valor é abatido.
-        </div>
+      <b>Quando pagar uma parcela, toque em “Excluir parcela”.</b> Assim ela sai do sistema e o valor restante é atualizado.
+   </div>
    <div class="commit-filters" id="commitFilters">
      ${filtros.map((f,i)=>`<button type="button" class="${i===0?'active':''}" data-filter="${f[0]}">${f[1]} <span class="filter-count">${f[2]}</span></button>`).join('')}
    </div>
@@ -500,14 +543,14 @@ function render(){
  db.contas.forEach(x=>{if(!x.pago&&x.data>=today())proximos.push({data:x.data,desc:x.nome,valor:x.valor,tipo:'Conta',extra:''})});
  db.parcelados.forEach(x=>{
    const pagos=statusParcela(x.id);
-   parcelasDaCompra(x).forEach(pp=>{if(pp.data>=today()&&!pagos.includes(pp.numero))proximos.push({data:pp.data,desc:x.desc,valor:pp.valor,tipo:'Parcela',extra:`${pp.numero}/${pp.total}`})});
+   parcelasAtivas(x).forEach(pp=>{if(pp.data>=today())proximos.push({data:pp.data,desc:x.desc,valor:pp.valor,tipo:'Parcela',extra:`${pp.numero}/${pp.total}`})});
  });
  proximos.sort((a,b)=>a.data.localeCompare(b.data));
  document.getElementById('proximosCompromissos').innerHTML=proximos.length?table(['Vencimento','Tipo','Descrição','Valor'],proximos.slice(0,15).map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.tipo} ${x.extra}</td><td>${x.desc}</td><td>${brl(x.valor)}</td></tr>`)):'<div class="empty">Nenhum pagamento futuro.</div>';
 
  const me=sum(db.recebimentos,'valor',x=>inMonth(x.data)),mc=sum(db.contas,'valor',x=>inMonth(x.data)&&!x.pago),mg=sum(db.gastos,'valor',x=>inMonth(x.data));
  const md=sum(db.depositos,'valor',x=>inMonth(x.data));
- const mp=db.parcelados.flatMap(x=>parcelasDaCompra(x).filter(p=>!statusParcela(x.id).includes(p.numero))).filter(x=>inMonth(x.data)).reduce((a,x)=>a+x.valor,0);
+ const mp=db.parcelados.flatMap(x=>parcelasAtivas(x)).filter(x=>inMonth(x.data)).reduce((a,x)=>a+x.valor,0);
  const compromissosMes=mc+mp;
  document.getElementById('mesEntrada').textContent=brl(me);document.getElementById('mesContas').textContent=brl(compromissosMes);document.getElementById('mesGastos').textContent=brl(mg);document.getElementById('mesParcelas').textContent=brl(mp);document.getElementById('mesGuardado').textContent=brl(md);document.getElementById('mesSaldo').textContent=brl(me-mc-mg-md-mp);
  const futurosContas=db.contas.filter(x=>!x.pago&&inMonth(x.data)).reduce((a,x)=>a+x.valor,0); const pagosParc=db.parcelados.flatMap(x=>parcelasDaCompra(x).map(pp=>({...pp,id:x.id}))).filter(pp=>inMonth(pp.data)&&!statusParcela(pp.id).includes(pp.numero)).reduce((a,x)=>a+x.valor,0); const livreMes=me-futurosContas-pagosParc-mg-md; document.getElementById('mesLivreRecebido').textContent=brl(me);document.getElementById('mesLivreComp').textContent=brl(futurosContas+pagosParc);document.getElementById('mesLivreGastos').textContent=brl(mg);document.getElementById('mesLivre').textContent=brl(livreMes);
