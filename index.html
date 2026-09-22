@@ -49,7 +49,7 @@ th{color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;le
 .totalbox:last-child{border-bottom:0}
 @media(min-width:620px){.row{grid-template-columns:1fr 1fr}.grid{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:430px){.container{padding:11px}.card{padding:14px;border-radius:16px}.formgrid{grid-template-columns:1fr}.kpi strong{font-size:18px}header{padding:23px 14px 27px}}
-</style>
+</style>>
 </head>
 <body>
 <header><div class="container"><h1>Meu Controle Financeiro</h1><p>Seu dinheiro, organizado de forma simples.</p></div></header>
@@ -170,6 +170,20 @@ th{color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;le
 <div class="card" style="margin-top:12px"><h3>Compras parceladas</h3><div id="listaParcelados"></div></div>
 <div class="card" style="margin-top:12px"><h3>Próximos compromissos</h3><div id="proximosParcelados"></div></div>
 </section>
+<section id="cofrinhos" class="section">
+<div class="card"><h3>Novo cofrinho</h3><div class="formgrid">
+<div><label>Nome do objetivo</label><input id="mNome" placeholder="Ex.: Comprar meu carro"></div>
+<div><label>Valor da meta</label><input id="mMeta" type="number" step="0.01" placeholder="30000"></div>
+</div><button class="primary" style="margin-top:10px" onclick="addMeta()">Criar cofrinho</button></div>
+<div class="card" style="margin-top:12px"><h3>Meus cofrinhos</h3><div id="listaMetas"></div></div>
+<div class="card" style="margin-top:12px"><h3>Adicionar dinheiro</h3><div class="formgrid">
+<div><label>Cofrinho</label><select id="depMeta"></select></div>
+<div><label>Valor</label><input id="depValor" type="number" step="0.01"></div>
+<div><label>Data</label><input id="depData" type="date"></div>
+<div><label>Descrição</label><input id="depDesc" placeholder="Ex.: depósito semanal"></div>
+</div><button class="primary" style="margin-top:10px" onclick="addDeposito()">Adicionar ao cofrinho</button></div>
+<div class="card" style="margin-top:12px"><h3>Histórico de depósitos</h3><div id="listaDepositos"></div></div>
+</section>
 <section id="resumo" class="section">
 <div class="card"><h3>Resumo do mês</h3><div class="grid" style="margin:0">
 <div class="card kpi"><small>Entradas</small><strong id="mesEntrada">R$ 0,00</strong></div>
@@ -188,7 +202,7 @@ if(!db.metas) db.metas=[];
 if(!db.depositos) db.depositos=[];
 const brl=v=>(Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const today=()=>new Date().toISOString().slice(0,10);
-['rData','gData','compData','depData'].forEach(id=>document.getElementById(id).value=today());
+['rData','gData','compData','pData','depData'].forEach(id=>{const e=document.getElementById(id); if(e)e.value=today();});
 function save(){localStorage.setItem(KEY,JSON.stringify(db));render();}
 function money(id){return parseFloat(document.getElementById(id).value)||0}
 function dateBR(d){return new Date(d+'T12:00:00').toLocaleDateString('pt-BR')}
@@ -202,32 +216,6 @@ function inMonth(d){return d.slice(0,7)===today().slice(0,7)}
 function sum(arr,key='valor',filter=()=>true){return arr.filter(filter).reduce((a,x)=>a+Number(x[key]||0),0)}
 function addRecebimento(){let v=money('rValor');if(!v)return alert('Informe o valor.');db.recebimentos.push({id:Date.now(),valor:v,data:document.getElementById('rData').value,desc:document.getElementById('rDesc').value||'Recebimento'});clear(['rValor','rDesc']);save()}
 function addConta(){let v=money('cValor'),n=document.getElementById('cNome').value;if(!n||!v)return alert('Informe nome e valor.');db.contas.push({id:Date.now(),nome:n,valor:v,data:document.getElementById('cData').value,pago:false});clear(['cNome','cValor']);save()}
-
-function toggleCompForm(){
- const tipo=document.getElementById('tipoComp').value;
- const extra=document.getElementById('parcelExtra');
- extra.style.display=tipo==='parcelado'?'block':'none';
- if(tipo==='parcelado') document.getElementById('compQtd').focus();
-}
-function addCompromisso(){
- const tipo=document.getElementById('tipoComp').value;
- const desc=document.getElementById('compDesc').value.trim();
- const valor=money('compValor');
- const data=document.getElementById('compData').value;
- if(!desc||!valor||!data) return alert('Informe descrição, valor e vencimento.');
- if(tipo==='conta'){
-   db.contas.push({id:Date.now(),nome:desc,valor,data,pago:false});
- }else{
-   const qtd=parseInt(document.getElementById('compQtd').value,10);
-   if(!qtd || qtd<2) return alert('Informe a quantidade de parcelas (mínimo 2).');
-   const total=valor;
-   const valorParcela=Math.round((total/qtd)*100)/100;
-   db.parcelados.push({id:Date.now(),desc,total,qtd,valorParcela,data});
- }
- clear(['compDesc','compValor']);
- document.getElementById('compQtd').value='';
- save();
-}
 
 function addMeta(){
  const nome=document.getElementById('mNome').value.trim();
@@ -285,7 +273,13 @@ function deleteParcelado(id){
  }
 }
 
-function clear(ids){ids.forEach(id=>document.getElementById(id).value='')}
+function addParcelado(){
+ const desc=(document.getElementById('pDesc')?.value||'').trim();
+ const total=money('pTotal'); const qtd=parseInt(document.getElementById('pQtd')?.value||'0',10); const data=document.getElementById('pData')?.value;
+ if(!desc||!total||!data||!qtd||qtd<2)return alert('Informe descrição, valor total, quantidade de parcelas e primeiro vencimento.');
+ db.parcelados.push({id:Date.now(),desc,total,qtd,valorParcela:Math.round((total/qtd)*100)/100,data}); clear(['pDesc','pTotal','pQtd']); save();
+}
+function clear(ids){ids.forEach(id=>{const e=document.getElementById(id); if(e)e.value=''})}
 function del(type,id){if(confirm('Excluir este lançamento?')){db[type]=db[type].filter(x=>x.id!==id);save()}}
 function toggleConta(id){let x=db.contas.find(x=>x.id===id);x.pago=!x.pago;save()}
 function saveMeta(){db.meta=money('metaInput');save();alert('Meta salva!')}
@@ -293,8 +287,10 @@ function showTabById(id){
  const btn=[...document.querySelectorAll('.tabs button')].find(b=>b.getAttribute('onclick')&&b.getAttribute('onclick').includes("showTab('"+id+"'"));
  if(btn) showTab(id,btn);
 }
-function showTab(id,btn){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));btn.classList.add('active')}
+function showTab(id,btn){const sec=document.getElementById(id); if(!sec)return; document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));sec.classList.add('active');document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active')); if(btn)btn.classList.add('active')}
 function table(headers,rows){if(!rows.length)return '<div class="empty">Nenhum lançamento ainda.</div>';return '<div style="overflow:auto"><table><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>'}
+function setText(id,value){const e=document.getElementById(id); if(e)e.textContent=value}
+function setHTML(id,value){const e=document.getElementById(id); if(e)e.innerHTML=value}
 function render(){
  const w=weekRange();
  const rec=sum(db.recebimentos,'valor',x=>inWeek(x.data));
@@ -303,12 +299,11 @@ function render(){
  const cofrinhoSemana=sum(db.depositos,'valor',x=>inWeek(x.data));
  const parcelasSemana=db.parcelados.flatMap(x=>parcelasDaCompra(x).map(p=>({...p,idCompra:x.id}))).filter(p=>inWeek(p.data));
  const parcelasValor=sum(parcelasSemana,'valor');
- const compromissosSemana=contas+parcelasValor;
  const disp=rec-contas-parcelasValor-gastos-cofrinhoSemana;
- document.getElementById('periodo').textContent=dateBR(w.start)+' a '+dateBR(w.end);
+ setText('periodo',dateBR(w.start)+' a '+dateBR(w.end));
  const metaSelect=document.getElementById('depMeta');
- metaSelect.innerHTML=db.metas.length?db.metas.map(m=>`<option value="${m.id}">${m.nome}</option>`).join(''):'<option value="">Crie um cofrinho primeiro</option>';
- document.getElementById('listaMetas').innerHTML=db.metas.length?db.metas.map(m=>{
+ if(metaSelect) metaSelect.innerHTML=db.metas.length?db.metas.map(m=>`<option value="${m.id}">${m.nome}</option>`).join(''):'<option value="">Crie um cofrinho primeiro</option>';
+ setHTML('listaMetas',db.metas.length?db.metas.map(m=>{
    const guardado=saldoMeta(m.id), pct=m.meta?Math.min(100,guardado/m.meta*100):0, falta=Math.max(0,m.meta-guardado);
    return `<div class="card" style="margin-bottom:10px;border:1px solid var(--border)">
      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
@@ -320,23 +315,24 @@ function render(){
      <div style="font-size:12px;color:var(--muted);margin-top:7px">${falta?`Faltam ${brl(falta)}`:'🎉 Meta atingida!'}</div></div>
      <div style="margin-top:10px;font-size:12px;color:var(--muted)">Total de depósitos: ${db.depositos.filter(x=>x.metaId===m.id).length}</div>
    </div>`;
- }).join(''):'<div class="empty">Você ainda não criou nenhum cofrinho.</div>';
- document.getElementById('listaDepositos').innerHTML=db.depositos.length?table(['Data','Cofrinho','Descrição','Valor',''],db.depositos.slice().reverse().map(d=>{const m=db.metas.find(x=>x.id===d.metaId);return `<tr><td>${dateBR(d.data)}</td><td>${m?m.nome:'Cofrinho removido'}</td><td>${d.desc}</td><td>${brl(d.valor)}</td><td class="actions"><button onclick="del('depositos',${d.id})">Excluir</button></td></tr>`})):'<div class="empty">Nenhum depósito registrado.</div>';
+ }).join(''):'<div class="empty">Você ainda não criou nenhum cofrinho.</div>');
+ setHTML('listaDepositos',db.depositos.length?table(['Data','Cofrinho','Descrição','Valor',''],db.depositos.slice().reverse().map(d=>{const m=db.metas.find(x=>x.id===d.metaId);return `<tr><td>${dateBR(d.data)}</td><td>${m?m.nome:'Cofrinho removido'}</td><td>${d.desc}</td><td>${brl(d.valor)}</td><td class="actions"><button onclick="del('depositos',${d.id})">Excluir</button></td></tr>`})):'<div class="empty">Nenhum depósito registrado.</div>');
 
 
- ['kpiRecebido','homeRecebido'].forEach(id=>document.getElementById(id).textContent=brl(rec));
- ['kpiContas','homeContas'].forEach(id=>document.getElementById(id).textContent=brl(contas));
-  document.getElementById('homeParcelas').textContent=brl(parcelasValor);
- document.getElementById('homeCofrinhos').textContent=brl(cofrinhoSemana);
- document.getElementById('kpiGuardado').textContent=brl(cofrinhoSemana);
- ['kpiDisponivel','homeDisponivel'].forEach(id=>{let e=document.getElementById(id);e.textContent=brl(disp);e.className=disp>=0?'green':'red'});
- document.getElementById('homeGastos').textContent=brl(gastos);
- document.getElementById('metaValor').textContent=brl(db.meta);
- let pct=db.meta?Math.min(100,guard/db.meta*100):0;document.getElementById('metaBar').style.width=pct+'%';
- document.getElementById('metaTexto').textContent=db.meta?(guard>=db.meta?'Meta semanal atingida!':`Faltam ${brl(db.meta-guard)} para a meta.`):'Defina sua meta acima.';
- document.getElementById('metaInput').value=db.meta||'';
- document.getElementById('listaRecebimentos').innerHTML=table(['Data','Descrição','Valor',''],db.recebimentos.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('recebimentos',${x.id})">Excluir</button></td></tr>`));
- document.getElementById('listaCompromissos').innerHTML=(function(){
+ ['kpiRecebido','homeRecebido'].forEach(id=>setText(id,brl(rec)));
+ ['kpiContas','homeContas'].forEach(id=>setText(id,brl(contas)));
+  setText('homeParcelas',brl(parcelasValor));
+ setText('homeCofrinhos',brl(cofrinhoSemana));
+ setText('kpiGuardado',brl(cofrinhoSemana));
+ ['kpiDisponivel','homeDisponivel'].forEach(id=>{let e=document.getElementById(id);if(e){e.textContent=brl(disp);e.className=disp>=0?'green':'red'}});
+ setText('homeGastos',brl(gastos));
+ const guard=sum(db.depositos,'valor');
+ setText('metaValor',brl(guard));
+ const pct=db.meta?Math.min(100,guard/db.meta*100):0; const metaBar=document.getElementById('metaBar'); if(metaBar)metaBar.style.width=pct+'%';
+ setText('metaTexto',db.meta?(guard>=db.meta?'Meta semanal atingida!':`Faltam ${brl(db.meta-guard)} para a meta.`):'Defina sua meta acima.');
+ const metaInput=document.getElementById('metaInput'); if(metaInput)metaInput.value=db.meta||'';
+ setHTML('listaRecebimentos',table(['Data','Descrição','Valor',''],db.recebimentos.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('recebimentos',${x.id})">Excluir</button></td></tr>`)));
+ setHTML('listaCompromissos',(function(){
    const rows=[];
    db.contas.slice().sort((a,b)=>a.data.localeCompare(b.data)).forEach(x=>{
      rows.push(`<tr><td>📌 Conta</td><td>${dateBR(x.data)}</td><td>${x.nome}</td><td>${brl(x.valor)}</td><td><button class="badge ${x.pago?'pago':'pendente'}" onclick="toggleConta(${x.id})">${x.pago?'PAGA':'PENDENTE'}</button></td><td class="actions"><button onclick="del('contas',${x.id})">Excluir</button></td></tr>`);
@@ -349,18 +345,18 @@ function render(){
      });
    });
    return rows.length?`<div style="overflow:auto"><table><thead><tr><th>Tipo</th><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`:'<div class="empty">Nenhuma conta ou compra parcelada cadastrada.</div>';
- })();
- document.getElementById('listaGastos').innerHTML=table(['Data','Descrição','Categoria','Valor',''],db.gastos.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${x.cat}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('gastos',${x.id})">Excluir</button></td></tr>`));
- document.getElementById('listaGuardado').innerHTML=table(['Data','Descrição','Valor',''],db.guardado.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('guardado',${x.id})">Excluir</button></td></tr>`));
+ })());
+ setHTML('listaGastos',table(['Data','Descrição','Categoria','Valor',''],db.gastos.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${x.cat}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('gastos',${x.id})">Excluir</button></td></tr>`)));
+ setHTML('listaGuardado',table(['Data','Descrição','Valor',''],db.guardado.slice().reverse().map(x=>`<tr><td>${dateBR(x.data)}</td><td>${x.desc}</td><td>${brl(x.valor)}</td><td class="actions"><button onclick="del('guardado',${x.id})">Excluir</button></td></tr>`)));
  const parcelRows=[];
  db.parcelados.slice().reverse().forEach(x=>{
    const pagos=statusParcela(x.id);
    const parcelas=parcelasDaCompra(x);
-   parcelRows.push(`<tr><td><b>${x.desc}</b><br><span style="font-size:11px;color:var(--muted)">${brl(x.total)} em ${x.qtd}x de ${brl(x.valorParcela)}</span></td><td>${dateBR(x.data)}</td><td>${x.qtd}x</td><td class="actions"><button onclick="delParcelado(${x.id})">Excluir</button></td></tr>`);
+   parcelRows.push(`<tr><td><b>${x.desc}</b><br><span style="font-size:11px;color:var(--muted)">${brl(x.total)} em ${x.qtd}x de ${brl(x.valorParcela)}</span></td><td>${dateBR(x.data)}</td><td>${x.qtd}x</td><td class="actions"><button onclick="deleteParcelado(${x.id})">Excluir</button></td></tr>`);
    const detalhes=parcelas.map(pp=>`<tr><td>${pp.numero}/${pp.total}</td><td>${dateBR(pp.data)}</td><td>${brl(pp.valor)}</td><td><button class="badge ${pagos.includes(pp.numero)?'pago':'pendente'}" onclick="toggleParcela(${x.id},${pp.numero})">${pagos.includes(pp.numero)?'PAGA':'PENDENTE'}</button></td></tr>`).join('');
    parcelRows.push(`<tr><td colspan="4" style="padding:0 0 10px"><div style="background:#fafbfc;border-radius:10px;padding:8px;overflow:auto"><table><thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead><tbody>${detalhes}</tbody></table></div></td></tr>`);
  });
- document.getElementById('listaParcelados').innerHTML=parcelRows.length?`<div style="overflow:auto"><table><thead><tr><th>Compra</th><th>1º vencimento</th><th>Parcelas</th><th></th></tr></thead><tbody>${parcelRows.join('')}</tbody></table></div>`:'<div class="empty">Nenhuma compra parcelada.</div>';
+ setHTML('listaParcelados',parcelRows.length?`<div style="overflow:auto"><table><thead><tr><th>Compra</th><th>1º vencimento</th><th>Parcelas</th><th></th></tr></thead><tbody>${parcelRows.join('')}</tbody></table></div>`:'<div class="empty">Nenhuma compra parcelada.</div>');
  const proximos=[];
  db.contas.forEach(x=>{if(!x.pago&&x.data>=today())proximos.push({data:x.data,desc:x.nome,valor:x.valor,tipo:'Conta',extra:''})});
  db.parcelados.forEach(x=>{
