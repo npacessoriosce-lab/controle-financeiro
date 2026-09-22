@@ -49,7 +49,7 @@ th{color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;le
 .totalbox:last-child{border-bottom:0}
 @media(min-width:620px){.row{grid-template-columns:1fr 1fr}.grid{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:430px){.container{padding:11px}.card{padding:14px;border-radius:16px}.formgrid{grid-template-columns:1fr}.kpi strong{font-size:18px}header{padding:23px 14px 27px}}
-</style>>
+</style>
 </head>
 <body>
 <header><div class="container"><h1>Meu Controle Financeiro</h1><p>Seu dinheiro, organizado de forma simples.</p></div></header>
@@ -202,6 +202,32 @@ function inMonth(d){return d.slice(0,7)===today().slice(0,7)}
 function sum(arr,key='valor',filter=()=>true){return arr.filter(filter).reduce((a,x)=>a+Number(x[key]||0),0)}
 function addRecebimento(){let v=money('rValor');if(!v)return alert('Informe o valor.');db.recebimentos.push({id:Date.now(),valor:v,data:document.getElementById('rData').value,desc:document.getElementById('rDesc').value||'Recebimento'});clear(['rValor','rDesc']);save()}
 function addConta(){let v=money('cValor'),n=document.getElementById('cNome').value;if(!n||!v)return alert('Informe nome e valor.');db.contas.push({id:Date.now(),nome:n,valor:v,data:document.getElementById('cData').value,pago:false});clear(['cNome','cValor']);save()}
+
+function toggleCompForm(){
+ const tipo=document.getElementById('tipoComp').value;
+ const extra=document.getElementById('parcelExtra');
+ extra.style.display=tipo==='parcelado'?'block':'none';
+ if(tipo==='parcelado') document.getElementById('compQtd').focus();
+}
+function addCompromisso(){
+ const tipo=document.getElementById('tipoComp').value;
+ const desc=document.getElementById('compDesc').value.trim();
+ const valor=money('compValor');
+ const data=document.getElementById('compData').value;
+ if(!desc||!valor||!data) return alert('Informe descrição, valor e vencimento.');
+ if(tipo==='conta'){
+   db.contas.push({id:Date.now(),nome:desc,valor,data,pago:false});
+ }else{
+   const qtd=parseInt(document.getElementById('compQtd').value,10);
+   if(!qtd || qtd<2) return alert('Informe a quantidade de parcelas (mínimo 2).');
+   const total=valor;
+   const valorParcela=Math.round((total/qtd)*100)/100;
+   db.parcelados.push({id:Date.now(),desc,total,qtd,valorParcela,data});
+ }
+ clear(['compDesc','compValor']);
+ document.getElementById('compQtd').value='';
+ save();
+}
 
 function addMeta(){
  const nome=document.getElementById('mNome').value.trim();
